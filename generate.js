@@ -13,9 +13,8 @@ const CONFIG = {
 async function generateHtmlFiles() {
     try {
         console.log('Starting HTML generation...');
-        console.log('Current directory:', __dirname);
-        console.log('Directory contents:', fs.readdirSync(__dirname));
         
+        // Create output directory if it doesn't exist
         if (!fs.existsSync(CONFIG.outputDir)) {
             fs.mkdirSync(CONFIG.outputDir, { recursive: true });
         }
@@ -26,8 +25,10 @@ async function generateHtmlFiles() {
             console.log('Copied index.html to public directory');
         }
 
+        // Read and process CSV file
         const items = await readCsvFile(CONFIG.inputCsv);
         
+        // Generate HTML files for each item
         items.forEach(item => {
             const htmlContent = generateItemHtml(item);
             const outputFile = path.join(CONFIG.outputDir, `item_id${item.id}.html`);
@@ -42,6 +43,7 @@ async function generateHtmlFiles() {
     }
 }
 
+// Read CSV file and process rows
 function readCsvFile(filePath) {
     return new Promise((resolve, reject) => {
         const results = [];
@@ -66,6 +68,7 @@ function readCsvFile(filePath) {
     });
 }
 
+// Process individual CSV row
 function processCsvRow(row) {
     const hasCertificate = row['Halal Certificate'] && 
                          row['Halal Certificate'].trim() !== '' && 
@@ -85,14 +88,13 @@ function processCsvRow(row) {
         certificate: validateUrl(row['Halal Certificate']?.trim()),
         certExpiry: hasCertificate 
             ? formatDate(row['Certificate Expiry']?.trim())
-            : 'Not Applicable'
+            : 'Not Applicable',
+        certStatus: hasCertificate ? 'Available' : 'Not Available'
     };
 }
 
+// Generate HTML for individual item
 function generateItemHtml(item) {
-    const hasCertificate = item.certificate && item.certificate !== '#' && item.certificate !== 'N/A';
-    const certExpiry = hasCertificate ? item.certExpiry : 'Not Applicable';
-
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -100,154 +102,183 @@ function generateItemHtml(item) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>i-HIC - ${escapeHtml(item.name)} Details</title>
     <style>
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { padding: 15px; background-color: #f5f5f5; font-family: Arial, sans-serif; }
+        .container { max-width: 100%; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header-container { text-align: center; margin-bottom: 20px; }
+        .header-main { 
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+            color: #0066cc; font-size: 24px; font-weight: 800;
+            letter-spacing: 0.5px; margin-bottom: 5px;
         }
-        body { 
-            padding: 20px; 
-            background-color: #f5f5f5; 
-            font-family: Arial, sans-serif; 
-            line-height: 1.6;
+        .header-sub { 
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+            color: #0066cc; font-size: 20px; font-weight: 800;
+            letter-spacing: 1px;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .item-name { 
+            font-size: 22px; font-weight: bold; text-align: center; 
+            margin-bottom: 25px; color: #333;
+            padding-bottom: 10px; border-bottom: 2px solid #0066cc;
         }
-        h1 {
-            color: #0066cc;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #0066cc;
-            padding-bottom: 10px;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        .info-card {
+            background: white; border-radius: 8px; padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;
             margin-bottom: 20px;
         }
-        .info-item {
-            margin-bottom: 10px;
+        .card-title {
+            font-weight: bold; color: #0066cc; margin-bottom: 15px;
+            font-size: 18px; padding-bottom: 5px; border-bottom: 1px solid #e0e0e0;
         }
-        .info-label {
-            font-weight: bold;
-            color: #555;
+        .detail-row { 
+            display: flex; margin-bottom: 10px; align-items: center;
+            padding-bottom: 10px; border-bottom: 1px solid #f0f0f0;
         }
-        .info-value {
-            margin-top: 5px;
+        .detail-row:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+        .detail-label { 
+            font-weight: bold; width: 50%; color: #555; 
+            font-size: 16px; padding-right: 5px;
         }
-        .valid {
-            color: green;
+        .detail-value { 
+            width: 50%; word-break: break-word;
+            font-size: 16px; text-align: left; padding-left: 5px;
         }
-        .expired {
-            color: red;
+        .cert-available { color: #27ae60; font-weight: bold; }
+        .cert-not-available { color: #e74c3c; font-weight: bold; }
+        .expired { color: #e74c3c; font-weight: bold; }
+        .valid { color: #27ae60; font-weight: bold; }
+        .btn { 
+            display: inline-block; padding: 10px 12px; color: white; 
+            text-decoration: none; border-radius: 5px; text-align: center; 
+            font-size: 15px; border: none; cursor: pointer; 
+            width: 100%; margin-top: 8px;
         }
-        .na-value {
-            color: #777;
-            font-style: italic;
+        .btn:hover { opacity: 0.9; }
+        .btn-blue { background-color: #3498db; }
+        .btn-green { background-color: #2ecc71; }
+        .btn-purple { background-color: #9b59b6; }
+        .btn-red { background-color: #e74c3c; margin: 15px 0 20px 0; }
+        .stock-request-box { 
+            background-color: #f8f9fa; padding: 15px; border-radius: 8px; 
+            margin-top: 20px; border: 1px solid #e0e0e0; text-align: left;
         }
-        .action-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+        .quantity-input { 
+            width: 100%; padding: 12px; margin: 10px 0; 
+            border: 1px solid #ddd; border-radius: 5px; 
+            font-size: 16px; text-align: left;
         }
-        .quantity-input {
-            padding: 8px;
-            width: 100px;
-            margin-right: 10px;
+        .quantity-label { 
+            display: block; margin: 10px 0 5px; font-weight: bold; 
+            color: #333; font-size: 16px; text-align: left;
         }
-        .request-btn {
-            padding: 8px 15px;
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .back-btn { 
+            display: block; text-align: center; margin-top: 20px; 
+            color: #3498db; text-decoration: none; 
+            font-weight: bold; font-size: 16px;
         }
-        .request-btn:hover {
-            background-color: #0055aa;
-        }
-        .document-link {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        .document-link:hover {
-            text-decoration: underline;
+        .expiry-alert-container, .cert-alert-container { margin: 10px 0 5px 0; }
+        .na-value { color: #7f8c8d; font-style: italic; }
+        
+        @media (min-width: 600px) { 
+            .container { max-width: 600px; } 
+            .header-main { font-size: 26px; }
+            .header-sub { font-size: 22px; }
+            .item-name { font-size: 24px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>${escapeHtml(item.name)} Details</h1>
+        <div class="header-container">
+            <div class="header-main">INSTANT HALAL & INVENTORY CHECKER</div>
+            <div class="header-sub">(i-HIC)</div>
+        </div>
+        <div class="item-name">${escapeHtml(item.name)}</div>
         
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label">Item ID:</div>
-                <div class="info-value">${escapeHtml(item.id)}</div>
+        <!-- Product Info Card -->
+        <div class="info-card">
+            <div class="card-title">Product Info</div>
+            <div class="detail-row">
+                <div class="detail-label">Item ID:</div>
+                <div class="detail-value">${escapeHtml(item.id)}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Category:</div>
-                <div class="info-value">${escapeHtml(item.category)}</div>
+            <div class="detail-row">
+                <div class="detail-label">Category:</div>
+                <div class="detail-value">${escapeHtml(item.category)}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Batch/GRIS No.:</div>
-                <div class="info-value">${escapeHtml(item.batch)}</div>
+            <div class="detail-row">
+                <div class="detail-label">Batch/GRIS No.:</div>
+                <div class="detail-value">${escapeHtml(item.batch)}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Brand:</div>
-                <div class="info-value">${escapeHtml(item.brand)}</div>
+            <div class="detail-row">
+                <div class="detail-label">Brand:</div>
+                <div class="detail-value">${escapeHtml(item.brand)}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Supplier:</div>
-                <div class="info-value">${escapeHtml(item.supplier)}</div>
+            <div class="detail-row">
+                <div class="detail-label">Supplier:</div>
+                <div class="detail-value">${escapeHtml(item.supplier)}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Purchased Date:</div>
-                <div class="info-value">${escapeHtml(item.purchaseDate)}</div>
+            <div class="detail-row">
+                <div class="detail-label">Item Expiry Date:</div>
+                <div class="detail-value" id="itemExpiryDate">${escapeHtml(item.expiry)}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Item Expiry Date:</div>
-                <div class="info-value" id="itemExpiryDate">${escapeHtml(item.expiry)}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Stock Available:</div>
-                <div class="info-value">${escapeHtml(item.stock)}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Invoice:</div>
-                <div class="info-value">
-                    <a href="${escapeHtml(item.invoice)}" class="document-link" target="_blank">View Invoice</a>
-                </div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Halal Certificate:</div>
-                <div class="info-value">
-                    ${hasCertificate ? 
-                        `<a href="${escapeHtml(item.certificate)}" class="document-link" target="_blank">View Certificate</a>` : 
-                        'Not Available'}
-                </div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Certificate Expiry:</div>
-                <div class="info-value" id="certExpiryDate">${escapeHtml(certExpiry)}</div>
+            <div id="expiryAlertContainer" class="expiry-alert-container"></div>
+            <div class="detail-row">
+                <div class="detail-label">Stock Available:</div>
+                <div class="detail-value">${escapeHtml(item.stock)}</div>
             </div>
         </div>
         
-        <div class="action-section">
-            <h3>Request Item</h3>
-            <div>
-                <input type="number" class="quantity-input" placeholder="Quantity" min="1">
-                <button class="request-btn" onclick="sendRequest('${escapeJsString(item.name)}')">Request</button>
+        <!-- Purchase Info Card -->
+        <div class="info-card">
+            <div class="card-title">Purchase Info</div>
+            <div class="detail-row">
+                <div class="detail-label">Purchased Date:</div>
+                <div class="detail-value">${escapeHtml(item.purchaseDate)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Invoice:</div>
+                <div class="detail-value">
+                    <a href="${escapeHtml(item.invoice)}" class="btn btn-blue">View Invoice</a>
+                </div>
             </div>
         </div>
+        
+        <!-- Halal Info Card -->
+        <div class="info-card">
+            <div class="card-title">Halal Info</div>
+            <div class="detail-row">
+                <div class="detail-label">Halal Certificate:</div>
+                <div class="detail-value ${item.certStatus === 'Available' ? 'cert-available' : 'cert-not-available'}">
+                    ${escapeHtml(item.certStatus)}
+                </div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Certificate Expiry:</div>
+                <div class="detail-value" id="certExpiryDate">${escapeHtml(item.certExpiry)}</div>
+            </div>
+            <div id="certAlertContainer" class="cert-alert-container"></div>
+            ${item.certificate && item.certificate !== '#' ? `
+            <div class="detail-row" style="margin-top: 5px;">
+                <div class="detail-label">Certificate:</div>
+                <div class="detail-value">
+                    <a href="${escapeHtml(item.certificate)}" class="btn btn-blue">View Certificate</a>
+                </div>
+            </div>` : ''}
+        </div>
+        
+        <div class="stock-request-box">
+            <button class="btn btn-purple">Stock Request</button>
+            <label class="quantity-label">Quantity:</label>
+            <input type="text" class="quantity-input" placeholder="Enter quantity">
+            <button class="btn btn-green" onclick="sendRequest('${escapeJsString(item.name)}')">Send Request</button>
+        </div>
+        
+        <a href="index.html" class="back-btn">← Back</a>
     </div>
 
     <script>
+        // Email functions
         function sendRequest(itemName) {
             const quantityInput = document.querySelector('.quantity-input');
             const quantity = quantityInput.value;
@@ -257,35 +288,95 @@ function generateItemHtml(item) {
                 return;
             }
             
-            const subject = 'Stock Request - ' + itemName;
-            const body = 'Hi. I want to request for ' + itemName + ' with a quantity of ' + quantity + '. Thank you.';
+            const subject = \`Stock Request - \${itemName}\`;
+            const body = \`Hi. I want to request for \${itemName} with a quantity of \${quantity}. Thank you.\`;
             
-            window.location.href = 'mailto:mygml021@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
             quantityInput.value = '';
         }
 
-        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber) {
-            if (!expiryDate || expiryDate.trim() === 'No info provided' || expiryDate.trim() === 'Not Applicable') {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.textContent = expiryDate;
-                    element.classList.add('na-value');
-                }
-                return;
+        function sendItemExpiryAlert(itemName, batchNumber, isExpired) {
+            const subject = \`High Important : \${itemName} is \${isExpired ? 'Expired' : 'Nearly Expired'}\`;
+            const body = \`Hi. The \${itemName} with Identification Number of \${batchNumber} is \${isExpired ? 'already expired' : 'nearly expired'}. Please do the necessary. Thank you.\`;
+            
+            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
+        }
+
+        function sendCertExpiryAlert(itemName, isExpired) {
+            const subject = \`High Important : \${itemName} Halal Certificate is \${isExpired ? 'Expired' : 'Nearly Expired'}\`;
+            const body = \`Hi. The \${itemName} Halal certificate is \${isExpired ? 'already expired' : 'nearly expired'}. Please do the necessary. Thank you.\`;
+            
+            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
+        }
+
+        // Alert button creation
+        function createItemExpiryAlertButton(itemName, batchNumber, daysRemaining) {
+            const container = document.getElementById('expiryAlertContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (daysRemaining < 1) {
+                const button = document.createElement('button');
+                button.className = 'btn btn-red';
+                button.textContent = 'Item Expired. Contact PIC';
+                button.onclick = () => sendItemExpiryAlert(itemName, batchNumber, true);
+                container.appendChild(button);
+            } else if (daysRemaining < 15) {
+                const button = document.createElement('button');
+                button.className = 'btn btn-red';
+                button.textContent = 'Nearly Expired. Contact PIC';
+                button.onclick = () => sendItemExpiryAlert(itemName, batchNumber, false);
+                container.appendChild(button);
+            }
+        }
+
+        function createCertExpiryAlertButton(itemName, daysRemaining) {
+            const container = document.getElementById('certAlertContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (daysRemaining < 1) {
+                const button = document.createElement('button');
+                button.className = 'btn btn-red';
+                button.textContent = 'Certificate Expired. Contact PIC';
+                button.onclick = () => sendCertExpiryAlert(itemName, true);
+                container.appendChild(button);
+            } else if (daysRemaining < 15) {
+                const button = document.createElement('button');
+                button.className = 'btn btn-red';
+                button.textContent = 'Certificate Nearly Expired. Contact PIC';
+                button.onclick = () => sendCertExpiryAlert(itemName, false);
+                container.appendChild(button);
+            }
+        }
+
+        // Date parsing and calculation
+        function parseDate(dateString) {
+            if (!dateString || dateString === 'No info provided' || dateString === 'Not Applicable') {
+                return null;
             }
             
-            try {
-                const parts = expiryDate.split('/');
+            const parts = dateString.split('/');
+            if (parts.length === 3) {
                 const day = parseInt(parts[0], 10);
                 const month = parseInt(parts[1], 10) - 1;
                 const year = parseInt(parts[2], 10);
-                const expiry = new Date(year, month, day);
                 
-                if (isNaN(expiry.getTime())) {
-                    console.error('Invalid date:', expiryDate);
-                    return;
+                const date = new Date(year, month, day);
+                if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+                    return date;
                 }
-                
+            }
+            return null;
+        }
+
+        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber) {
+            const expiry = parseDate(expiryDate);
+            if (!expiry) return;
+            
+            try {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const timeDiff = expiry.getTime() - today.getTime();
@@ -293,15 +384,19 @@ function generateItemHtml(item) {
                 
                 const element = document.getElementById(elementId);
                 if (element) {
+                    const formattedDate = formatDisplayDate(expiry);
+                    
                     if (daysRemaining < 1) {
-                        element.textContent = expiryDate + ' (Expired)';
+                        element.textContent = \`\${formattedDate} (Expired)\`;
                         element.classList.remove('valid');
                         element.classList.add('expired');
+                        createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
                     } else {
-                        element.textContent = expiryDate + ' (Expires in ' + daysRemaining + ' days)';
+                        element.textContent = \`\${formattedDate} (Expires in \${daysRemaining} days)\`;
                         if (daysRemaining < 15) {
                             element.classList.remove('valid');
                             element.classList.add('expired');
+                            createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
                         } else {
                             element.classList.remove('expired');
                             element.classList.add('valid');
@@ -313,18 +408,28 @@ function generateItemHtml(item) {
             }
         }
 
+        function formatDisplayDate(date) {
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return \`\${day}/\${month}/\${year}\`;
+        }
+
+        // Initialize on page load
         window.onload = function() {
             const itemName = '${escapeJsString(item.name)}';
             const batchNumber = '${escapeJsString(item.batch)}';
             
-            const itemExpiryElement = document.getElementById('itemExpiryDate');
-            const itemExpiryDate = itemExpiryElement ? itemExpiryElement.textContent.trim() : 'No info provided';
-            calculateDaysRemaining(itemExpiryDate, 'itemExpiryDate', itemName, batchNumber);
+            calculateDaysRemaining(
+                document.getElementById('itemExpiryDate').textContent.trim(),
+                'itemExpiryDate',
+                itemName,
+                batchNumber
+            );
             
-            const certExpiryElement = document.getElementById('certExpiryDate');
-            const certExpiryDate = certExpiryElement ? certExpiryElement.textContent.trim() : 'Not Applicable';
-            if (certExpiryDate !== 'Not Applicable') {
-                calculateDaysRemaining(certExpiryDate, 'certExpiryDate', itemName, batchNumber);
+            const certExpiry = document.getElementById('certExpiryDate').textContent.trim();
+            if (certExpiry !== 'Not Applicable') {
+                calculateDaysRemaining(certExpiry, 'certExpiryDate', itemName, batchNumber);
             }
         };
     </script>
@@ -332,29 +437,31 @@ function generateItemHtml(item) {
 </html>`;
 }
 
+// Utility functions
 function formatDate(dateString) {
     if (!dateString || dateString.trim() === '' || dateString.trim().toLowerCase() === 'na') {
         return 'No info provided';
     }
     
     try {
-        if (dateString.includes('/')) {
-            const parts = dateString.split('/');
-            if (parts.length === 3 && parts[2].length === 4) {
-                const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const year = parseInt(parts[2], 10);
-                
-                if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year > 2000) {
-                    const date = new Date(year, month, day);
-                    if (date.getDate() === day && date.getMonth() === month && date.getFullYear() === year) {
-                        const formattedDay = day.toString().padStart(2, '0');
-                        const formattedMonth = (month + 1).toString().padStart(2, '0');
-                        return `${formattedDay}/${formattedMonth}/${year}`;
-                    }
-                }
-            }
+        const cleanedDate = dateString.trim().replace(/\s+/g, '').replace(/-/g, '/');
+        const parts = cleanedDate.split('/');
+        
+        if (parts.length !== 3) return 'No info provided';
+        
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        
+        if (year < 1000 || year > 9999 || month < 0 || month > 11) {
+            return 'No info provided';
         }
+        
+        const date = new Date(year, month, day);
+        if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+            return \`\${day.toString().padStart(2, '0')}/\${(month + 1).toString().padStart(2, '0')}/\${year}\`;
+        }
+        
         return 'No info provided';
     } catch (e) {
         console.error('Error formatting date:', dateString, e);
@@ -367,7 +474,7 @@ function validateUrl(url) {
         return '#';
     }
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return `https://${url}`;
+        return \`https://\${url}\`;
     }
     return url;
 }
@@ -393,6 +500,7 @@ function escapeJsString(unsafe) {
         .replace(/\t/g, '\\t');
 }
 
+// Start the generation process
 generateHtmlFiles().catch(error => {
     console.error('Generation failed:', error);
     process.exit(1);
