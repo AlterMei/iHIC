@@ -74,11 +74,6 @@
             font-size: 14px;
             height: 20px;
         }
-        .info-text {
-            margin-top: 20px;
-            color: #666;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
@@ -89,31 +84,31 @@
         <input type="password" class="passkey-input" placeholder="Enter Passkey" id="passkeyInput">
         <div class="error-message" id="errorMessage"></div>
         <button class="login-btn" onclick="attemptLogin()">Login</button>
-        <div class="info-text">Enter the correct passkey to access the system</div>
     </div>
 
     <script>
+        // List of valid item IDs/passkeys from the CSV
+        const validPasskeys = ['1', '2', '3', '4', '24', '44'];
+
         function attemptLogin() {
             const passkey = document.getElementById('passkeyInput').value.trim();
             const errorElement = document.getElementById('errorMessage');
+            
+            // Clear previous error
+            errorElement.textContent = '';
             
             if (!passkey) {
                 errorElement.textContent = 'Please enter a passkey';
                 return;
             }
             
-            // Check if the item exists
-            fetch(`item_id${passkey}.html`)
-                .then(response => {
-                    if (response.ok) {
-                        window.location.href = `item_id${passkey}.html`;
-                    } else {
-                        errorElement.textContent = 'Invalid passkey';
-                    }
-                })
-                .catch(() => {
-                    errorElement.textContent = 'Error checking passkey';
-                });
+            // Check if the passkey is valid
+            if (validPasskeys.includes(passkey)) {
+                // Redirect to the corresponding item page
+                window.location.href = `item_${passkey}.html`;
+            } else {
+                errorElement.textContent = 'Invalid passkey. Please try again.';
+            }
         }
 
         // Allow login on Enter key press

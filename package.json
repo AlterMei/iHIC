@@ -1,21 +1,13 @@
 {
-  "name": "i-hic",
+  "name": "halal-info-generator",
   "version": "1.0.0",
-  "description": "Instant Halal & Inventory Checker",
+  "description": "Generates HTML pages from CSV data",
+  "main": "generate.js",
   "scripts": {
-    "build": "node generate.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node generate.js"
-  },
-  "engines": {
-    "node": ">=16.0.0 <17.0.0",
-    "npm": ">=7.0.0"
+    "generate": "node generate.js",
+    "build": "npm run generate"
   },
   "dependencies": {
-    "csv-parser": "^3.0.0",
-    "fs-extra": "^11.0.0"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+    "csv-parser": "^3.0.0"
+  }
 }

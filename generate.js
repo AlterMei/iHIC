@@ -1,170 +1,22 @@
 const fs = require('fs');
+const csv = require('csv-parser');
 const path = require('path');
 
-// Item data structure
-const items = [
-  {
-    id: 44,
-    name: "Pecah Beling Extract",
-    category: "Raw Material",
-    batchNumber: "R045/21",
-    brand: "ForUs",
-    supplier: "FRIM",
-    expiryDate: "22/05/2025",
-    stock: "3.88 Kg",
-    purchaseDate: "09/06/2022",
-    invoiceUrl: "https://drive.google.com/file/d/1YcHyopXSSecugI4iEG5eT53TttfNSy8m/view?usp=sharing",
-    halalCertAvailable: true,
-    certExpiryDate: "No info provided",
-    certUrl: "https://drive.google.com/file/d/1pnZwxVCRkokCuzaG5v_2Vo5adOhjxsIo/view?usp=sharing"
-  }
-  // Add more items here as needed
-];
+// Function to generate HTML content for an item
+function generateHTML(item) {
+  const today = new Date();
+  const itemExpiryDate = item['Item Expiry Date'] === 'NA' ? null : parseDate(item['Item Expiry Date']);
+  const certExpiryDate = item['Certificate Expiry Date'] === 'NA' ? null : parseDate(item['Certificate Expiry Date']);
 
-// Generate index.html
-function generateIndex() {
-  const indexTemplate = `<!DOCTYPE html>
+  const itemExpiryStatus = getExpiryStatus(itemExpiryDate);
+  const certExpiryStatus = getExpiryStatus(certExpiryDate);
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>i-HIC - Login</title>
-    <style>
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-        }
-        body { 
-            padding: 15px; 
-            background-color: #f5f5f5; 
-            font-family: Arial, sans-serif; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .login-container { 
-            max-width: 400px; 
-            width: 100%;
-            margin: 0 auto; 
-            background: white; 
-            border-radius: 10px; 
-            padding: 30px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            text-align: center;
-        }
-        .header-main { 
-            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
-            color: #0066cc; 
-            font-size: 24px; 
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-        .header-sub { 
-            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
-            color: #0066cc; 
-            font-size: 20px; 
-            font-weight: 800;
-            letter-spacing: 1px;
-            margin-bottom: 30px;
-        }
-        .passkey-input {
-            width: 100%;
-            padding: 12px;
-            margin: 20px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            text-align: center;
-        }
-        .login-btn {
-            width: 100%;
-            padding: 12px;
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .login-btn:hover {
-            background-color: #0055aa;
-        }
-        .error-message {
-            color: #e74c3c;
-            margin-top: 10px;
-            font-size: 14px;
-            height: 20px;
-        }
-        .info-text {
-            margin-top: 20px;
-            color: #666;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <div class="header-main">INSTANT HALAL & INVENTORY CHECKER</div>
-        <div class="header-sub">(i-HIC)</div>
-        
-        <input type="password" class="passkey-input" placeholder="Enter Passkey" id="passkeyInput">
-        <div class="error-message" id="errorMessage"></div>
-        <button class="login-btn" onclick="attemptLogin()">Login</button>
-        <div class="info-text">Enter the item ID as passkey to access the system</div>
-    </div>
-
-    <script>
-        // List of valid item IDs/passkeys
-        const validPasskeys = [${items.map(item => `'${item.id}'`).join(', ')}];
-
-        function attemptLogin() {
-            const passkey = document.getElementById('passkeyInput').value.trim();
-            const errorElement = document.getElementById('errorMessage');
-            
-            // Clear previous error
-            errorElement.textContent = '';
-            
-            if (!passkey) {
-                errorElement.textContent = 'Please enter a passkey';
-                return;
-            }
-            
-            // Check if the passkey is valid
-            if (validPasskeys.includes(passkey)) {
-                // Redirect to the corresponding item page
-                window.location.href = 'item_' + passkey + '.html';
-            } else {
-                errorElement.textContent = 'Invalid passkey. Please try again.';
-            }
-        }
-
-        // Allow login on Enter key press
-        document.getElementById('passkeyInput').addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                attemptLogin();
-            }
-        });
-    </script>
-</body>
-</html>`;
-
-  fs.writeFileSync(path.join(__dirname, 'index.html'), indexTemplate);
-  console.log('Generated index.html');
-}
-
-// Generate individual item pages
-function generateItemPages() {
-  items.forEach(item => {
-    const itemTemplate = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>i-HIC - ${item.name} Details</title>
+    <title>i-HIC - ${item['Item Name']} Details</title>
     <style>
         * { 
             box-sizing: border-box; 
@@ -337,39 +189,47 @@ function generateItemPages() {
             <div class="header-main">INSTANT HALAL & INVENTORY CHECKER</div>
             <div class="header-sub">(i-HIC)</div>
         </div>
-        <div class="item-name">${item.name}</div>
+        <div class="item-name">${item['Item Name']}</div>
         
         <!-- Product Info Card -->
         <div class="info-card">
             <div class="card-title">Product Info</div>
             <div class="detail-row">
                 <div class="detail-label">Item ID:</div>
-                <div class="detail-value">${item.id}</div>
+                <div class="detail-value">${item['Item ID']}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Category:</div>
-                <div class="detail-value">${item.category}</div>
+                <div class="detail-value">${item['Category']}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Batch/GRIS No.:</div>
-                <div class="detail-value">${item.batchNumber}</div>
+                <div class="detail-value">${item['Batch/GRIS No.']}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Brand:</div>
-                <div class="detail-value">${item.brand}</div>
+                <div class="detail-value">${item['Brand']}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Supplier:</div>
-                <div class="detail-value">${item.supplier}</div>
+                <div class="detail-value">${item['Supplier']}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Item Expiry Date:</div>
-                <div class="detail-value" id="itemExpiryDate">${item.expiryDate}</div>
+                <div class="detail-value ${itemExpiryStatus.class}" id="itemExpiryDate">
+                    ${item['Item Expiry Date'] === 'NA' ? 'N/A' : `${formatDate(itemExpiryDate)} ${itemExpiryStatus.text}`}
+                </div>
             </div>
-            <div id="expiryAlertContainer" class="expiry-alert-container"></div>
+            ${itemExpiryStatus.alert ? `
+            <div id="expiryAlertContainer" class="expiry-alert-container">
+                <button class="btn btn-red" onclick="sendItemExpiryAlert('${item['Item Name']}', '${item['Batch/GRIS No.']}', ${itemExpiryStatus.isExpired})">
+                    ${itemExpiryStatus.alertText}
+                </button>
+            </div>
+            ` : '<div id="expiryAlertContainer" class="expiry-alert-container"></div>'}
             <div class="detail-row">
                 <div class="detail-label">Stock Available:</div>
-                <div class="detail-value">${item.stock}</div>
+                <div class="detail-value">${item['Stock Available']}</div>
             </div>
         </div>
         
@@ -378,12 +238,12 @@ function generateItemPages() {
             <div class="card-title">Purchase Info</div>
             <div class="detail-row">
                 <div class="detail-label">Purchased Date:</div>
-                <div class="detail-value">${item.purchaseDate}</div>
+                <div class="detail-value">${formatDate(parseDate(item['Purchased Date']))}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Invoice:</div>
                 <div class="detail-value">
-                    <a href="${item.invoiceUrl}" class="btn btn-blue">View Invoice</a>
+                    <a href="${item['Invoice']}" class="btn btn-blue">View Invoice</a>
                 </div>
             </div>
         </div>
@@ -393,30 +253,38 @@ function generateItemPages() {
             <div class="card-title">Halal Info</div>
             <div class="detail-row">
                 <div class="detail-label">Halal Certificate:</div>
-                <div class="detail-value ${item.halalCertAvailable ? 'cert-available' : 'cert-not-available'}">
-                    ${item.halalCertAvailable ? 'Available' : 'Not Available'}
+                <div class="detail-value ${item['Halal Certificate'] === 'Available' ? 'cert-available' : 'cert-not-available'}">
+                    ${item['Halal Certificate']}
                 </div>
             </div>
+            ${item['Halal Certificate'] === 'Available' ? `
             <div class="detail-row">
                 <div class="detail-label">Certificate Expiry:</div>
-                <div class="detail-value" id="certExpiryDate">${item.certExpiryDate}</div>
+                <div class="detail-value ${certExpiryStatus.class}" id="certExpiryDate">
+                    ${item['Certificate Expiry Date'] === 'NA' ? 'N/A' : `${formatDate(certExpiryDate)} ${certExpiryStatus.text}`}
+                </div>
             </div>
-            <div id="certAlertContainer" class="cert-alert-container"></div>
-            
-            ${item.halalCertAvailable ? `
+            ${certExpiryStatus.alert ? `
+            <div id="certAlertContainer" class="cert-alert-container">
+                <button class="btn btn-red" onclick="sendCertExpiryAlert('${item['Item Name']}', ${certExpiryStatus.isExpired})">
+                    ${certExpiryStatus.alertText}
+                </button>
+            </div>
+            ` : '<div id="certAlertContainer" class="cert-alert-container"></div>'}
             <div class="detail-row" style="margin-top: 5px;">
                 <div class="detail-label">Certificate:</div>
                 <div class="detail-value">
-                    <a href="${item.certUrl}" class="btn btn-blue">View Certificate</a>
+                    <a href="${item['Halal Certificate URL']}" class="btn btn-blue">View Certificate</a>
                 </div>
-            </div>` : ''}
+            </div>
+            ` : ''}
         </div>
         
         <div class="stock-request-box">
             <button class="btn btn-purple">Stock Request</button>
             <label class="quantity-label">Quantity:</label>
             <input type="text" class="quantity-input" placeholder="Enter quantity">
-            <button class="btn btn-green" onclick="sendRequest('${item.name.replace(/'/g, "\\'")}')">Send Request</button>
+            <button class="btn btn-green" onclick="sendRequest('${item['Item Name']}')">Send Request</button>
         </div>
         
         <a href="index.html" class="back-btn">← Back</a>
@@ -432,27 +300,25 @@ function generateItemPages() {
                 return;
             }
             
-            const subject = 'Stock Request - ' + itemName;
-            const body = 'Hi. I want to request for ' + itemName + ' with a quantity of ' + quantity + '. Thank you.';
+            const subject = \`Stock Request - \${itemName}\`;
+            const body = \`Hi. I want to request for \${itemName} with a quantity of \${quantity}. Thank you.\`;
             
-            window.location.href = 'mailto:mygml021@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
             quantityInput.value = '';
         }
 
         function sendItemExpiryAlert(itemName, batchNumber, isExpired) {
-            const subject = 'High Important : ' + itemName + ' is ' + (isExpired ? 'Expired' : 'Nearly Expired');
-            const body = 'Hi. The ' + itemName + ' with Identification Number of ' + batchNumber + ' is ' + 
-                        (isExpired ? 'already expired' : 'nearly expired') + '. Please do the necessary. Thank you.';
+            const subject = \`High Important : \${itemName} is \${isExpired ? 'Expired' : 'Nearly Expired'}\`;
+            const body = \`Hi. The \${itemName} with Identification Number of \${batchNumber} is \${isExpired ? 'already expired' : 'nearly expired'}. Please do the necessary. Thank you.\`;
             
-            window.location.href = 'mailto:mygml021@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
         }
 
         function sendCertExpiryAlert(itemName, isExpired) {
-            const subject = 'High Important : ' + itemName + ' Halal Certificate is ' + (isExpired ? 'Expired' : 'Nearly Expired');
-            const body = 'Hi. The ' + itemName + ' Halal certificate is ' + 
-                        (isExpired ? 'already expired' : 'nearly expired') + '. Please do the necessary. Thank you.';
+            const subject = \`High Important : \${itemName} Halal Certificate is \${isExpired ? 'Expired' : 'Nearly Expired'}\`;
+            const body = \`Hi. The \${itemName} Halal certificate is \${isExpired ? 'already expired' : 'nearly expired'}. Please do the necessary. Thank you.\`;
             
-            window.location.href = 'mailto:mygml021@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
         }
 
         function createItemExpiryAlertButton(itemName, batchNumber, daysRemaining) {
@@ -497,57 +363,48 @@ function generateItemPages() {
             }
         }
 
-        function parseDateString(dateString) {
-            if (!dateString || dateString === 'No info provided' || dateString === 'Not Applicable') {
-                return null;
+        function parseDate(dateString) {
+            if (dateString.includes('/')) {
+                const parts = dateString.split('/');
+                return new Date(parts[2], parts[1] - 1, parts[0]);
             }
-            
-            const parts = dateString.split('/');
-            if (parts.length === 3) {
-                const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const year = parseInt(parts[2], 10);
-                
-                const date = new Date(year, month, day);
-                if (!isNaN(date.getTime())) {
-                    return date;
-                }
-            }
-            return null;
+            return new Date(dateString);
         }
 
-        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber, isCert = false) {
-            const expiry = parseDateString(expiryDate);
-            if (!expiry) return;
+        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber) {
+            if (!expiryDate || expiryDate === 'NA') return;
             
             try {
+                const expiry = parseDate(expiryDate);
                 const today = new Date();
-                today.setHours(0, 0, 0, 0);
                 const timeDiff = expiry.getTime() - today.getTime();
                 const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
                 
                 const element = document.getElementById(elementId);
                 if (element) {
-                    const formattedDate = formatDateForDisplay(expiry);
+                    const formattedDate = formatDate(expiry);
                     
                     if (daysRemaining < 1) {
-                        element.textContent = formattedDate + ' (Expired)';
+                        element.textContent = \`\${formattedDate} (Expired)\`;
                         element.classList.remove('valid');
                         element.classList.add('expired');
-                        if (isCert) {
-                            createCertExpiryAlertButton(itemName, daysRemaining);
-                        } else {
+                        
+                        if (elementId === 'itemExpiryDate') {
                             createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
+                        } else if (elementId === 'certExpiryDate') {
+                            createCertExpiryAlertButton(itemName, daysRemaining);
                         }
                     } else {
-                        element.textContent = formattedDate + ' (Expires in ' + daysRemaining + ' days)';
+                        element.textContent = \`\${formattedDate} (Expires in \${daysRemaining} days)\`;
+                        
                         if (daysRemaining < 15) {
                             element.classList.remove('valid');
                             element.classList.add('expired');
-                            if (isCert) {
-                                createCertExpiryAlertButton(itemName, daysRemaining);
-                            } else {
+                            
+                            if (elementId === 'itemExpiryDate') {
                                 createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
+                            } else if (elementId === 'certExpiryDate') {
+                                createCertExpiryAlertButton(itemName, daysRemaining);
                             }
                         } else {
                             element.classList.remove('expired');
@@ -555,41 +412,110 @@ function generateItemPages() {
                         }
                     }
                 }
+                
+                return daysRemaining;
             } catch (e) {
                 console.error('Error calculating date:', e);
+                return null;
             }
         }
 
-        function formatDateForDisplay(date) {
+        function formatDate(date) {
             const day = date.getDate().toString().padStart(2, '0');
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const year = date.getFullYear();
-            return day + '/' + month + '/' + year;
+            return \`\${day}/\${month}/\${year}\`;
         }
 
         window.onload = function() {
-            const itemName = '${item.name.replace(/'/g, "\\'")}';
-            const batchNumber = '${item.batchNumber.replace(/'/g, "\\'")}';
-            
-            const itemExpiryElement = document.getElementById('itemExpiryDate');
-            if (itemExpiryElement) {
-                calculateDaysRemaining(itemExpiryElement.textContent.trim(), 'itemExpiryDate', itemName, batchNumber);
-            }
-            
-            const certExpiryElement = document.getElementById('certExpiryDate');
-            if (certExpiryElement && certExpiryElement.textContent.trim() !== 'No info provided') {
-                calculateDaysRemaining(certExpiryElement.textContent.trim(), 'certExpiryDate', itemName, batchNumber, true);
-            }
+            const itemName = '${item['Item Name']}';
+            const batchNumber = '${item['Batch/GRIS No.']}';
+            ${item['Item Expiry Date'] !== 'NA' ? `calculateDaysRemaining('${item['Item Expiry Date']}', 'itemExpiryDate', itemName, batchNumber);` : ''}
+            ${item['Certificate Expiry Date'] !== 'NA' && item['Halal Certificate'] === 'Available' ? `calculateDaysRemaining('${item['Certificate Expiry Date']}', 'certExpiryDate', itemName, batchNumber);` : ''}
         };
     </script>
 </body>
 </html>`;
-
-    fs.writeFileSync(path.join(__dirname, `item_${item.id}.html`), itemTemplate);
-    console.log(`Generated item_${item.id}.html`);
-  });
 }
 
-// Main execution
-generateIndex();
-generateItemPages();
+// Helper functions
+function parseDate(dateString) {
+    if (!dateString || dateString === 'NA') return null;
+    const parts = dateString.split('/');
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+function formatDate(date) {
+    if (!date) return 'N/A';
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function getExpiryStatus(expiryDate) {
+    if (!expiryDate) {
+        return {
+            class: 'na-value',
+            text: '',
+            alert: false
+        };
+    }
+
+    const today = new Date();
+    const timeDiff = expiryDate.getTime() - today.getTime();
+    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysRemaining < 1) {
+        return {
+            class: 'expired',
+            text: '(Expired)',
+            alert: true,
+            alertText: 'Item Expired. Contact PIC',
+            isExpired: true
+        };
+    } else if (daysRemaining < 15) {
+        return {
+            class: 'expired',
+            text: `(Expires in ${daysRemaining} days)`,
+            alert: true,
+            alertText: 'Nearly Expired. Contact PIC',
+            isExpired: false
+        };
+    } else {
+        return {
+            class: 'valid',
+            text: `(Expires in ${daysRemaining} days)`,
+            alert: false
+        };
+    }
+}
+
+// Main function to process CSV and generate HTML files
+function generateFromCSV() {
+    const items = [];
+    
+    fs.createReadStream('Halal_Info_2.csv')
+        .pipe(csv())
+        .on('data', (data) => items.push(data))
+        .on('end', () => {
+            // Create output directory if it doesn't exist
+            const outputDir = path.join(__dirname, 'generated');
+            if (!fs.existsSync(outputDir)) {
+                fs.mkdirSync(outputDir);
+            }
+
+            // Generate HTML for each item
+            items.forEach(item => {
+                const htmlContent = generateHTML(item);
+                const fileName = `item_${item['Item ID']}.html`;
+                fs.writeFileSync(path.join(outputDir, fileName), htmlContent);
+                console.log(`Generated: ${fileName}`);
+            });
+
+            console.log('HTML generation complete!');
+        });
+}
+
+// Run the generator
+generateFromCSV();
