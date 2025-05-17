@@ -74,7 +74,8 @@ function processCsvRow(row) {
 // Generate HTML for an item
 function generateItemHtml(item) {
     const hasCertificate = item.certificate && item.certificate.trim() !== '';
-    
+    const certExpiry = item.certExpiry || 'N/A';
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -304,26 +305,26 @@ function generateItemHtml(item) {
             </div>
         </div>
         
-        <!-- Halal Info Card -->
+        <!-- Corrected Halal Info Card -->
         <div class="info-card">
             <div class="card-title">Halal Info</div>
             <div class="detail-row">
                 <div class="detail-label">Halal Certificate:</div>
-                <div class="detail-value">
-                    ${hasCertificate ? 
-                        `<a href="${escapeHtml(item.certificate)}" class="btn btn-blue">View Certificate</a>` : 
-                        '<span class="cert-not-available">Not Available</span>'}
+                <div class="detail-value ${hasCertificate ? 'cert-available' : 'cert-not-available'}">
+                    ${hasCertificate ? 'Available' : 'Not Available'}
                 </div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Certificate Expiry:</div>
-                <div class="detail-value" id="certExpiryDate">${escapeHtml(item.certExpiry)}</div>
+                <div class="detail-value" id="certExpiryDate">${escapeHtml(certExpiry)}</div>
             </div>
             <div id="certAlertContainer" class="cert-alert-container"></div>
-            <div class="detail-row" style="margin-top: 5px;">
+            <div class="detail-row">
                 <div class="detail-label">Certificate:</div>
-                <div class="detail-value ${hasCertificate ? 'cert-available' : 'cert-not-available'}">
-                    ${hasCertificate ? 'Available' : 'Not Available'}
+                <div class="detail-value">
+                    ${hasCertificate ? 
+                        `<a href="${escapeHtml(item.certificate)}" class="btn btn-blue">View Certificate</a>` : 
+                        '<span class="cert-not-available">Not Applicable</span>'}
                 </div>
             </div>
         </div>
@@ -512,7 +513,9 @@ function generateItemHtml(item) {
             // Calculate days remaining for certificate expiry
             const certExpiryElement = document.getElementById('certExpiryDate');
             const certExpiryDate = certExpiryElement ? certExpiryElement.textContent.trim() : '${escapeHtml(item.certExpiry)}';
-            calculateDaysRemaining(certExpiryDate, 'certExpiryDate', itemName, batchNumber);
+            if (certExpiryDate && certExpiryDate !== 'N/A') {
+                calculateDaysRemaining(certExpiryDate, 'certExpiryDate', itemName, batchNumber);
+            }
         };
     </script>
 </body>
