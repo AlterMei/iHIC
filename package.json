@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Instant Halal & Inventory Checker",
   "scripts": {
-    "build": "node generate.js"
+    "build": "node generate.js",
+    "start": "node generate.js"
   },
   "engines": {
     "node": ">=16.0.0 <17.0.0",

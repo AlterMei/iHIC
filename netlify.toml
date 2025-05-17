@@ -5,6 +5,13 @@
 
 [context.production.environment]
   NODE_VERSION = "16.20.2"
+  NPM_FLAGS = "--verbose"
 
 [build.environment]
   NODE_VERSION = "16.20.2"
+  NPM_FLAGS = "--verbose"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
