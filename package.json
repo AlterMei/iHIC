@@ -4,6 +4,7 @@
   "description": "Instant Halal & Inventory Checker",
   "scripts": {
     "build": "node generate.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node generate.js"
   },
   "engines": {
@@ -11,6 +12,10 @@
     "npm": ">=7.0.0"
   },
   "dependencies": {
-    "csv-parser": "^3.0.0"
-  }
+    "csv-parser": "^3.0.0",
+    "fs-extra": "^11.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

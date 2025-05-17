@@ -3,13 +3,13 @@
   publish = "public"
   functions = "functions"
 
-[context.production.environment]
-  NODE_VERSION = "16.20.2"
-  NPM_FLAGS = "--verbose"
-
 [build.environment]
   NODE_VERSION = "16.20.2"
   NPM_FLAGS = "--verbose"
+  AWS_LAMBDA_JS_RUNTIME = "nodejs16.x"
+
+[context.production.environment]
+  NODE_VERSION = "16.20.2"
 
 [[redirects]]
   from = "/*"
