@@ -1,0 +1,24 @@
+{
+  "name": "i-hic-generator",
+  "version": "1.0.0",
+  "description": "Generates i-HIC HTML pages from CSV data",
+  "main": "generate.js",
+  "scripts": {
+    "build": "node generate.js",
+    "start": "node generate.js",
+    "test": "echo \"Error: no tests specified\" && exit 1"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.x"
+  },
+  "keywords": [
+    "halal",
+    "inventory",
+    "generator"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
