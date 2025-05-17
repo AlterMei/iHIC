@@ -1,119 +1,170 @@
 const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
 
-// Configuration with absolute paths
-const CONFIG = {
-    inputCsv: path.resolve(__dirname, 'Halal_Info_2.csv'),
-    outputDir: path.resolve(__dirname, 'public'),
-    indexFile: path.resolve(__dirname, 'index.html')
-};
+// Item data structure
+const items = [
+  {
+    id: 44,
+    name: "Pecah Beling Extract",
+    category: "Raw Material",
+    batchNumber: "R045/21",
+    brand: "ForUs",
+    supplier: "FRIM",
+    expiryDate: "22/05/2025",
+    stock: "3.88 Kg",
+    purchaseDate: "09/06/2022",
+    invoiceUrl: "https://drive.google.com/file/d/1YcHyopXSSecugI4iEG5eT53TttfNSy8m/view?usp=sharing",
+    halalCertAvailable: true,
+    certExpiryDate: "No info provided",
+    certUrl: "https://drive.google.com/file/d/1pnZwxVCRkokCuzaG5v_2Vo5adOhjxsIo/view?usp=sharing"
+  }
+  // Add more items here as needed
+];
 
-// Error handling setup
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled rejection:', err);
-    process.exit(1);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught exception:', err);
-    process.exit(1);
-});
-
-async function generateHtmlFiles() {
-    try {
-        console.log('Starting HTML generation...');
-        
-        // Create or clean output directory
-        if (!fs.existsSync(CONFIG.outputDir)) {
-            fs.mkdirSync(CONFIG.outputDir, { recursive: true });
-            console.log(`Created directory: ${CONFIG.outputDir}`);
-        } else {
-            console.log(`Directory exists: ${CONFIG.outputDir}`);
-            // Clear existing HTML files
-            fs.readdirSync(CONFIG.outputDir).forEach(file => {
-                if (file.endsWith('.html') && file !== 'index.html') {
-                    fs.unlinkSync(path.join(CONFIG.outputDir, file));
-                }
-            });
-        }
-
-        // Copy index.html
-        if (fs.existsSync(CONFIG.indexFile)) {
-            fs.copyFileSync(CONFIG.indexFile, path.join(CONFIG.outputDir, 'index.html'));
-            console.log('Copied index.html to public directory');
-        }
-
-        // Process CSV
-        const items = await readCsvFile(CONFIG.inputCsv);
-        console.log(`Processing ${items.length} items...`);
-        
-        items.forEach(item => {
-            const htmlContent = generateItemHtml(item);
-            const outputFile = path.join(CONFIG.outputDir, `item_${item.id}.html`);
-            fs.writeFileSync(outputFile, htmlContent);
-        });
-
-        console.log(`Successfully generated ${items.length} item pages`);
-        
-    } catch (error) {
-        console.error('Error during generation:', error);
-        process.exit(1);
-    }
-}
-
-function readCsvFile(filePath) {
-    return new Promise((resolve, reject) => {
-        const results = [];
-        
-        if (!fs.existsSync(filePath)) {
-            console.error('Directory contents:', fs.readdirSync(path.dirname(filePath)));
-            reject(new Error(`CSV file not found: ${filePath}`));
-            return;
-        }
-
-        fs.createReadStream(filePath)
-            .pipe(csv())
-            .on('data', (data) => {
-                try {
-                    results.push(processCsvRow(data));
-                } catch (error) {
-                    console.error('Error processing CSV row:', error);
-                }
-            })
-            .on('end', () => resolve(results))
-            .on('error', reject);
-    });
-}
-
-function processCsvRow(row) {
-    const hasCertificate = row['Halal Certificate']?.trim() && 
-                         row['Halal Certificate'].trim() !== 'N/A';
-    
-    return {
-        id: row['Item ID']?.trim() || '0',
-        name: row['Item Name']?.trim() || 'Unknown',
-        category: row['Category']?.trim() || 'Raw Material',
-        batch: row['Batch/GRIS No.']?.trim() || '',
-        brand: row['Brand']?.trim() || '',
-        supplier: row['Supplier']?.trim() || '',
-        expiry: formatDate(row['Item Expiry Date']?.trim()),
-        stock: row['Stock Available']?.trim() || '0 pcs',
-        purchaseDate: formatDate(row['Purchased Date']?.trim()),
-        invoice: validateUrl(row['Invoice']?.trim()),
-        certificate: validateUrl(row['Halal Certificate']?.trim()),
-        certExpiry: hasCertificate ? formatDate(row['Certificate Expiry']?.trim()) : 'Not Applicable',
-        certStatus: hasCertificate ? 'Available' : 'Not Available'
-    };
-}
-
-function generateItemHtml(item) {
-    return `<!DOCTYPE html>
+// Generate index.html
+function generateIndex() {
+  const indexTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>i-HIC - ${escapeHtml(item.name)} Details</title>
+    <title>i-HIC - Login</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
+        body { 
+            padding: 15px; 
+            background-color: #f5f5f5; 
+            font-family: Arial, sans-serif; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-container { 
+            max-width: 400px; 
+            width: 100%;
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 10px; 
+            padding: 30px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            text-align: center;
+        }
+        .header-main { 
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+            color: #0066cc; 
+            font-size: 24px; 
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .header-sub { 
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+            color: #0066cc; 
+            font-size: 20px; 
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+        }
+        .passkey-input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .login-btn:hover {
+            background-color: #0055aa;
+        }
+        .error-message {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 14px;
+            height: 20px;
+        }
+        .info-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header-main">INSTANT HALAL & INVENTORY CHECKER</div>
+        <div class="header-sub">(i-HIC)</div>
+        
+        <input type="password" class="passkey-input" placeholder="Enter Passkey" id="passkeyInput">
+        <div class="error-message" id="errorMessage"></div>
+        <button class="login-btn" onclick="attemptLogin()">Login</button>
+        <div class="info-text">Enter the item ID as passkey to access the system</div>
+    </div>
+
+    <script>
+        // List of valid item IDs/passkeys
+        const validPasskeys = [${items.map(item => `'${item.id}'`).join(', ')}];
+
+        function attemptLogin() {
+            const passkey = document.getElementById('passkeyInput').value.trim();
+            const errorElement = document.getElementById('errorMessage');
+            
+            // Clear previous error
+            errorElement.textContent = '';
+            
+            if (!passkey) {
+                errorElement.textContent = 'Please enter a passkey';
+                return;
+            }
+            
+            // Check if the passkey is valid
+            if (validPasskeys.includes(passkey)) {
+                // Redirect to the corresponding item page
+                window.location.href = 'item_' + passkey + '.html';
+            } else {
+                errorElement.textContent = 'Invalid passkey. Please try again.';
+            }
+        }
+
+        // Allow login on Enter key press
+        document.getElementById('passkeyInput').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                attemptLogin();
+            }
+        });
+    </script>
+</body>
+</html>`;
+
+  fs.writeFileSync(path.join(__dirname, 'index.html'), indexTemplate);
+  console.log('Generated index.html');
+}
+
+// Generate individual item pages
+function generateItemPages() {
+  items.forEach(item => {
+    const itemTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i-HIC - ${item.name} Details</title>
     <style>
         * { 
             box-sizing: border-box; 
@@ -286,39 +337,39 @@ function generateItemHtml(item) {
             <div class="header-main">INSTANT HALAL & INVENTORY CHECKER</div>
             <div class="header-sub">(i-HIC)</div>
         </div>
-        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-name">${item.name}</div>
         
         <!-- Product Info Card -->
         <div class="info-card">
             <div class="card-title">Product Info</div>
             <div class="detail-row">
                 <div class="detail-label">Item ID:</div>
-                <div class="detail-value">${escapeHtml(item.id)}</div>
+                <div class="detail-value">${item.id}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Category:</div>
-                <div class="detail-value">${escapeHtml(item.category)}</div>
+                <div class="detail-value">${item.category}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Batch/GRIS No.:</div>
-                <div class="detail-value">${escapeHtml(item.batch)}</div>
+                <div class="detail-value">${item.batchNumber}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Brand:</div>
-                <div class="detail-value">${escapeHtml(item.brand)}</div>
+                <div class="detail-value">${item.brand}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Supplier:</div>
-                <div class="detail-value">${escapeHtml(item.supplier)}</div>
+                <div class="detail-value">${item.supplier}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Item Expiry Date:</div>
-                <div class="detail-value" id="itemExpiryDate">${escapeHtml(item.expiry)}</div>
+                <div class="detail-value" id="itemExpiryDate">${item.expiryDate}</div>
             </div>
             <div id="expiryAlertContainer" class="expiry-alert-container"></div>
             <div class="detail-row">
                 <div class="detail-label">Stock Available:</div>
-                <div class="detail-value">${escapeHtml(item.stock)}</div>
+                <div class="detail-value">${item.stock}</div>
             </div>
         </div>
         
@@ -327,12 +378,12 @@ function generateItemHtml(item) {
             <div class="card-title">Purchase Info</div>
             <div class="detail-row">
                 <div class="detail-label">Purchased Date:</div>
-                <div class="detail-value">${escapeHtml(item.purchaseDate)}</div>
+                <div class="detail-value">${item.purchaseDate}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Invoice:</div>
                 <div class="detail-value">
-                    <a href="${escapeHtml(item.invoice)}" class="btn btn-blue">View Invoice</a>
+                    <a href="${item.invoiceUrl}" class="btn btn-blue">View Invoice</a>
                 </div>
             </div>
         </div>
@@ -342,20 +393,21 @@ function generateItemHtml(item) {
             <div class="card-title">Halal Info</div>
             <div class="detail-row">
                 <div class="detail-label">Halal Certificate:</div>
-                <div class="detail-value ${item.certStatus === 'Available' ? 'cert-available' : 'cert-not-available'}">
-                    ${escapeHtml(item.certStatus)}
+                <div class="detail-value ${item.halalCertAvailable ? 'cert-available' : 'cert-not-available'}">
+                    ${item.halalCertAvailable ? 'Available' : 'Not Available'}
                 </div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Certificate Expiry:</div>
-                <div class="detail-value" id="certExpiryDate">${escapeHtml(item.certExpiry)}</div>
+                <div class="detail-value" id="certExpiryDate">${item.certExpiryDate}</div>
             </div>
             <div id="certAlertContainer" class="cert-alert-container"></div>
-            ${item.certificate && item.certificate !== '#' ? `
+            
+            ${item.halalCertAvailable ? `
             <div class="detail-row" style="margin-top: 5px;">
                 <div class="detail-label">Certificate:</div>
                 <div class="detail-value">
-                    <a href="${escapeHtml(item.certificate)}" class="btn btn-blue">View Certificate</a>
+                    <a href="${item.certUrl}" class="btn btn-blue">View Certificate</a>
                 </div>
             </div>` : ''}
         </div>
@@ -364,7 +416,7 @@ function generateItemHtml(item) {
             <button class="btn btn-purple">Stock Request</button>
             <label class="quantity-label">Quantity:</label>
             <input type="text" class="quantity-input" placeholder="Enter quantity">
-            <button class="btn btn-green" onclick="sendRequest('${escapeJsString(item.name)}')">Send Request</button>
+            <button class="btn btn-green" onclick="sendRequest('${item.name.replace(/'/g, "\\'")}')">Send Request</button>
         </div>
         
         <a href="index.html" class="back-btn">← Back</a>
@@ -457,14 +509,14 @@ function generateItemHtml(item) {
                 const year = parseInt(parts[2], 10);
                 
                 const date = new Date(year, month, day);
-                if (!isNaN(date.getTime()) {
+                if (!isNaN(date.getTime())) {
                     return date;
                 }
             }
             return null;
         }
 
-        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber) {
+        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber, isCert = false) {
             const expiry = parseDateString(expiryDate);
             if (!expiry) return;
             
@@ -482,7 +534,9 @@ function generateItemHtml(item) {
                         element.textContent = formattedDate + ' (Expired)';
                         element.classList.remove('valid');
                         element.classList.add('expired');
-                        if (elementId === 'itemExpiryDate') {
+                        if (isCert) {
+                            createCertExpiryAlertButton(itemName, daysRemaining);
+                        } else {
                             createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
                         }
                     } else {
@@ -490,7 +544,9 @@ function generateItemHtml(item) {
                         if (daysRemaining < 15) {
                             element.classList.remove('valid');
                             element.classList.add('expired');
-                            if (elementId === 'itemExpiryDate') {
+                            if (isCert) {
+                                createCertExpiryAlertButton(itemName, daysRemaining);
+                            } else {
                                 createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
                             }
                         } else {
@@ -512,8 +568,8 @@ function generateItemHtml(item) {
         }
 
         window.onload = function() {
-            const itemName = '${escapeJsString(item.name)}';
-            const batchNumber = '${escapeJsString(item.batch)}';
+            const itemName = '${item.name.replace(/'/g, "\\'")}';
+            const batchNumber = '${item.batchNumber.replace(/'/g, "\\'")}';
             
             const itemExpiryElement = document.getElementById('itemExpiryDate');
             if (itemExpiryElement) {
@@ -521,82 +577,19 @@ function generateItemHtml(item) {
             }
             
             const certExpiryElement = document.getElementById('certExpiryDate');
-            if (certExpiryElement && certExpiryElement.textContent.trim() !== 'Not Applicable') {
-                calculateDaysRemaining(certExpiryElement.textContent.trim(), 'certExpiryDate', itemName, batchNumber);
+            if (certExpiryElement && certExpiryElement.textContent.trim() !== 'No info provided') {
+                calculateDaysRemaining(certExpiryElement.textContent.trim(), 'certExpiryDate', itemName, batchNumber, true);
             }
         };
     </script>
 </body>
 </html>`;
+
+    fs.writeFileSync(path.join(__dirname, `item_${item.id}.html`), itemTemplate);
+    console.log(`Generated item_${item.id}.html`);
+  });
 }
 
-function formatDate(dateString) {
-    if (!dateString || dateString.trim() === '' || dateString.trim().toLowerCase() === 'na') {
-        return 'No info provided';
-    }
-    
-    try {
-        // Remove any whitespace and normalize separators
-        const cleanedDate = dateString.trim().replace(/\s+/g, '').replace(/-/g, '/');
-        const parts = cleanedDate.split('/');
-        
-        if (parts.length !== 3) return 'No info provided';
-        
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        
-        if (year < 1000 || year > 9999 || month < 0 || month > 11) {
-            return 'No info provided';
-        }
-        
-        const date = new Date(year, month, day);
-        if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
-            return day.toString().padStart(2, '0') + '/' + 
-                   (month + 1).toString().padStart(2, '0') + '/' + 
-                   year;
-        }
-        
-        return 'No info provided';
-    } catch (e) {
-        console.error('Error formatting date:', dateString, e);
-        return 'No info provided';
-    }
-}
-
-function validateUrl(url) {
-    if (!url || url.trim() === '' || url.trim().toLowerCase() === 'na') {
-        return '#';
-    }
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return 'https://' + url;
-    }
-    return url;
-}
-
-function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe.toString()
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function escapeJsString(unsafe) {
-    if (!unsafe) return '';
-    return unsafe.toString()
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t');
-}
-
-// Start the generation process
-generateHtmlFiles().catch(error => {
-    console.error('Generation failed:', error);
-    process.exit(1);
-});
+// Main execution
+generateIndex();
+generateItemPages();
