@@ -6,9 +6,7 @@ const csv = require('csv-parser');
 const CONFIG = {
     inputCsv: path.join(__dirname, 'Halal_Info_2.csv'),
     outputDir: path.join(__dirname, 'public'),
-    indexFile: path.join(__dirname, 'index.html'),
-    stylesFile: path.join(__dirname, 'styles.css'),
-    scriptsFile: path.join(__dirname, 'scripts.js')
+    indexFile: path.join(__dirname, 'index.html')
 };
 
 // Main generation function
@@ -21,6 +19,12 @@ async function generateHtmlFiles() {
             fs.mkdirSync(CONFIG.outputDir, { recursive: true });
         }
 
+        // Copy index.html to public directory if it exists
+        if (fs.existsSync(CONFIG.indexFile)) {
+            fs.copyFileSync(CONFIG.indexFile, path.join(CONFIG.outputDir, 'index.html'));
+            console.log('Copied index.html to public directory');
+        }
+
         // Read and process CSV
         const items = await readCsvFile(CONFIG.inputCsv);
         
@@ -29,6 +33,7 @@ async function generateHtmlFiles() {
             const htmlContent = generateItemHtml(item);
             const outputFile = path.join(CONFIG.outputDir, `item_id${item.id}.html`);
             fs.writeFileSync(outputFile, htmlContent);
+            console.log(`Generated: item_id${item.id}.html`);
         });
 
         console.log(`Successfully generated ${items.length} item pages`);
@@ -108,7 +113,169 @@ function generateItemHtml(item) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>i-HIC - ${escapeHtml(item.name)} Details</title>
     <style>
-        ${getFileContent(CONFIG.stylesFile, getDefaultStyles())}
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
+        body { 
+            padding: 15px; 
+            background-color: #f5f5f5; 
+            font-family: Arial, sans-serif; 
+        }
+        .container { 
+            max-width: 100%; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 10px; 
+            padding: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .header-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header-main { 
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+            color: #0066cc; 
+            font-size: 24px; 
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .header-sub { 
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
+            color: #0066cc; 
+            font-size: 20px; 
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .item-name { 
+            font-size: 22px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin-bottom: 25px; 
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0066cc;
+        }
+        .info-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 15px;
+            font-size: 18px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .detail-row { 
+            display: flex; 
+            margin-bottom: 10px; 
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .detail-label { 
+            font-weight: bold; 
+            width: 50%; 
+            color: #555; 
+            font-size: 16px;
+            padding-right: 5px;
+        }
+        .detail-value { 
+            width: 50%; 
+            word-break: break-word;
+            font-size: 16px;
+            text-align: left;
+            padding-left: 5px;
+        }
+        .cert-available { color: #27ae60; font-weight: bold; }
+        .cert-not-available { color: #e74c3c; font-weight: bold; }
+        .expired { color: #e74c3c; font-weight: bold; }
+        .valid { color: #27ae60; font-weight: bold; }
+        .btn { 
+            display: inline-block; 
+            padding: 10px 12px; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            text-align: center; 
+            font-size: 15px; 
+            border: none; 
+            cursor: pointer; 
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-blue { background-color: #3498db; }
+        .btn-green { background-color: #2ecc71; }
+        .btn-purple { background-color: #9b59b6; }
+        .btn-red { 
+            background-color: #e74c3c; 
+            margin: 15px 0 20px 0;
+        }
+        .stock-request-box { 
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 20px; 
+            border: 1px solid #e0e0e0;
+            text-align: left;
+        }
+        .quantity-input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            text-align: left;
+        }
+        .quantity-label { 
+            display: block; 
+            margin: 10px 0 5px; 
+            font-weight: bold; 
+            color: #333; 
+            font-size: 16px;
+            text-align: left;
+        }
+        .back-btn { 
+            display: block; 
+            text-align: center; 
+            margin-top: 20px; 
+            color: #3498db; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 16px;
+        }
+        .expiry-alert-container {
+            margin: 10px 0 5px 0;
+        }
+        .cert-alert-container {
+            margin: 10px 0 5px 0;
+        }
+        .na-value {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        @media (min-width: 600px) { 
+            .container { max-width: 600px; } 
+            .header-main { font-size: 26px; }
+            .header-sub { font-size: 22px; }
+            .item-name { font-size: 24px; }
+        }
     </style>
 </head>
 <body>
@@ -122,186 +289,25 @@ function generateItemHtml(item) {
         <!-- Product Info Card -->
         <div class="info-card">
             <div class="card-title">Product Info</div>
-            ${generateDetailRow('Item ID:', item.id)}
-            ${generateDetailRow('Category:', item.category)}
-            ${generateDetailRow('Batch/GRIS No.:', item.batch)}
-            ${generateDetailRow('Brand:', item.brand)}
-            ${generateDetailRow('Supplier:', item.supplier)}
-            ${generateDetailRow('Item Expiry Date:', item.expiry, 'itemExpiryDate')}
-            <div id="expiryAlertContainer" class="expiry-alert-container"></div>
-            ${generateDetailRow('Stock Available:', item.stock)}
-        </div>
-        
-        <!-- Purchase Info Card -->
-        <div class="info-card">
-            <div class="card-title">Purchase Info</div>
-            ${generateDetailRow('Purchased Date:', item.purchaseDate)}
             <div class="detail-row">
-                <div class="detail-label">Invoice:</div>
-                <div class="detail-value">
-                    <a href="${escapeHtml(item.invoice)}" class="btn btn-blue" target="_blank" rel="noopener noreferrer">View Invoice</a>
-                </div>
+                <div class="detail-label">Item ID:</div>
+                <div class="detail-value">${escapeHtml(item.id)}</div>
             </div>
-        </div>
-        
-        <!-- Halal Info Card -->
-        <div class="info-card">
-            <div class="card-title">Halal Info</div>
             <div class="detail-row">
-                <div class="detail-label">Halal Certificate:</div>
-                <div class="detail-value ${hasCertificate ? 'cert-available' : 'cert-not-available'}">
-                    ${hasCertificate ? 'Available' : 'Not Available'}
-                </div>
+                <div class="detail-label">Category:</div>
+                <div class="detail-value">${escapeHtml(item.category)}</div>
             </div>
-            ${generateDetailRow('Certificate Expiry:', certExpiry, 'certExpiryDate')}
-            <div id="certAlertContainer" class="cert-alert-container"></div>
             <div class="detail-row">
-                <div class="detail-label">Certificate:</div>
-                <div class="detail-value">
-                    ${hasCertificate ? 
-                        `<a href="${escapeHtml(item.certificate)}" class="btn btn-blue" target="_blank" rel="noopener noreferrer">View Certificate</a>` : 
-                        '<span class="cert-not-available">Not Applicable</span>'}
-                </div>
+                <div class="detail-label">Batch/GRIS No.:</div>
+                <div class="detail-value">${escapeHtml(item.batch)}</div>
             </div>
-        </div>
-        
-        <div class="stock-request-box">
-            <button class="btn btn-purple">Stock Request</button>
-            <label class="quantity-label">Quantity:</label>
-            <input type="text" class="quantity-input" placeholder="Enter quantity">
-            <button class="btn btn-green" onclick="sendRequest('${escapeJsString(item.name)}')">Send Request</button>
-        </div>
-        
-        <a href="index.html" class="back-btn">← Back</a>
-    </div>
-
-    <script>
-        ${getFileContent(CONFIG.scriptsFile, getDefaultScripts(item))}
-    </script>
-</body>
-</html>`;
-}
-
-// Helper functions
-function generateDetailRow(label, value, id = '') {
-    return `<div class="detail-row">
-        <div class="detail-label">${escapeHtml(label)}</div>
-        <div class="detail-value" ${id ? `id="${id}"` : ''}>${escapeHtml(value)}</div>
-    </div>`;
-}
-
-function formatDate(dateInput) {
-    if (!dateInput) return 'N/A';
-    
-    try {
-        // If already formatted, return as-is
-        if (typeof dateInput === 'string' && dateInput.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-            return dateInput;
-        }
-
-        let date;
-        if (typeof dateInput === 'string') {
-            const parts = dateInput.split(/[\/-]/);
-            if (parts.length === 3) {
-                // Try DD/MM/YYYY first
-                date = new Date(parts[2], parts[1] - 1, parts[0]);
-                if (isNaN(date.getTime())) {
-                    // Try MM/DD/YYYY if DD/MM/YYYY fails
-                    date = new Date(parts[2], parts[0] - 1, parts[1]);
-                }
-            } else {
-                date = new Date(dateInput);
-            }
-        } else if (dateInput instanceof Date) {
-            date = dateInput;
-        }
-
-        if (!date || isNaN(date.getTime())) return 'N/A';
-
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    } catch (e) {
-        console.error('Error formatting date:', dateInput, e);
-        return 'N/A';
-    }
-}
-
-function validateUrl(url) {
-    if (!url || url.trim() === '' || url.trim().toLowerCase() === 'na') {
-        return '#';
-    }
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return `https://${url}`;
-    }
-    return url;
-}
-
-function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe.toString()
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function escapeJsString(unsafe) {
-    if (!unsafe) return '';
-    return unsafe.toString()
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t');
-}
-
-function getFileContent(filePath, defaultValue = '') {
-    try {
-        return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : defaultValue;
-    } catch (error) {
-        console.error(`Error reading file ${filePath}:`, error);
-        return defaultValue;
-    }
-}
-
-function getDefaultStyles() {
-    return `* { box-sizing: border-box; margin: 0; padding: 0; }
-    body { padding: 15px; background-color: #f5f5f5; font-family: Arial, sans-serif; }
-    .container { max-width: 100%; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    /* Include all other default styles here */`;
-}
-
-function getDefaultScripts(item) {
-    return `function sendRequest(itemName) {
-        const quantityInput = document.querySelector('.quantity-input');
-        const quantity = quantityInput.value;
-        
-        if (!quantity) {
-            alert('Please enter a quantity');
-            return;
-        }
-        
-        const subject = \`Stock Request - \${itemName}\`;
-        const body = \`Hi. I want to request for \${itemName} with a quantity of \${quantity}. Thank you.\`;
-        
-        window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
-        quantityInput.value = '';
-    }
-
-    window.onload = function() {
-        const itemName = '${escapeJsString(item.name)}';
-        const batchNumber = '${escapeJsString(item.batch)}';
-        
-        // Initialize your scripts here
-    };`;
-}
-
-// Run the generation
-generateHtmlFiles().catch(error => {
-    console.error('Generation failed:', error);
-    process.exit(1);
-});
+            <div class="detail-row">
+                <div class="detail-label">Brand:</div>
+                <div class="detail-value">${escapeHtml(item.brand)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Supplier:</div>
+                <div class="detail-value">${escapeHtml(item.supplier)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="
