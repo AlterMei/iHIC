@@ -8,8 +8,7 @@ const CSV_FILE = 'Halal_Info_2.csv';
 const OUTPUT_DIR = 'generated';
 const EMAIL = 'mygml021@gmail.com';
 
-// 1. HELPER FUNCTIONS ==============================================
-
+// Helper Functions
 function parseDate(dateString) {
     if (!dateString || dateString === 'NA') return null;
     if (dateString.includes('/')) {
@@ -58,8 +57,7 @@ function getExpiryStatus(expiryDate) {
     };
 }
 
-// 2. HTML TEMPLATE ================================================
-
+// HTML Template
 function generateHTML(item) {
     const itemExpiryDate = parseDate(item['Item Expiry Date']);
     const certExpiryDate = parseDate(item['Certificate Expiry Date']);
@@ -154,7 +152,7 @@ function generateHTML(item) {
                     ${itemExpiryStatus.alertText}
                 </button>
             </div>
-            ` : '<div id="expiryAlertContainer" class="expiry-alert-container"></div>'}
+            ` : ''}
             <div class="detail-row">
                 <div class="detail-label">Stock Available:</div>
                 <div class="detail-value">${item['Stock Available']}</div>
@@ -198,7 +196,7 @@ function generateHTML(item) {
                     ${certExpiryStatus.alertText}
                 </button>
             </div>
-            ` : '<div id="certAlertContainer" class="cert-alert-container"></div>'}
+            ` : ''}
             <div class="detail-row" style="margin-top: 5px;">
                 <div class="detail-label">Certificate:</div>
                 <div class="detail-value">
@@ -250,113 +248,42 @@ function generateHTML(item) {
             window.location.href = \`mailto:${EMAIL}?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
         }
 
-        // Alert Button Creators
-        function createItemExpiryAlertButton(itemName, batchNumber, daysRemaining) {
-            const container = document.getElementById('expiryAlertContainer');
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            if (daysRemaining < 1) {
-                const button = document.createElement('button');
-                button.className = 'btn btn-red';
-                button.textContent = 'Item Expired. Contact PIC';
-                button.onclick = () => sendItemExpiryAlert(itemName, batchNumber, true);
-                container.appendChild(button);
-            } else if (daysRemaining < 15) {
-                const button = document.createElement('button');
-                button.className = 'btn btn-red';
-                button.textContent = 'Nearly Expired. Contact PIC';
-                button.onclick = () => sendItemExpiryAlert(itemName, batchNumber, false);
-                container.appendChild(button);
-            }
-        }
-
-        function createCertExpiryAlertButton(itemName, daysRemaining) {
-            const container = document.getElementById('certAlertContainer');
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            if (daysRemaining < 1) {
-                const button = document.createElement('button');
-                button.className = 'btn btn-red';
-                button.textContent = 'Certificate Expired. Contact PIC';
-                button.onclick = () => sendCertExpiryAlert(itemName, true);
-                container.appendChild(button);
-            } else if (daysRemaining < 15) {
-                const button = document.createElement('button');
-                button.className = 'btn btn-red';
-                button.textContent = 'Certificate Nearly Expired. Contact PIC';
-                button.onclick = () => sendCertExpiryAlert(itemName, false);
-                container.appendChild(button);
-            }
-        }
-
-        // Date Calculations
-        function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber) {
-            if (!expiryDate || expiryDate === 'NA') return;
-            
-            try {
-                const expiry = parseDate(expiryDate);
-                const today = new Date();
-                const timeDiff = expiry.getTime() - today.getTime();
-                const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
-                
-                const element = document.getElementById(elementId);
-                if (element) {
-                    const formattedDate = formatDate(expiry);
-                    
-                    if (daysRemaining < 1) {
-                        element.textContent = \`\${formattedDate} (Expired)\`;
-                        element.classList.remove('valid');
-                        element.classList.add('expired');
-                        
-                        if (elementId === 'itemExpiryDate') {
-                            createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
-                        } else if (elementId === 'certExpiryDate') {
-                            createCertExpiryAlertButton(itemName, daysRemaining);
-                        }
-                    } else {
-                        element.textContent = \`\${formattedDate} (Expires in \${daysRemaining} days)\`;
-                        
-                        if (daysRemaining < 15) {
-                            element.classList.remove('valid');
-                            element.classList.add('expired');
-                            
-                            if (elementId === 'itemExpiryDate') {
-                                createItemExpiryAlertButton(itemName, batchNumber, daysRemaining);
-                            } else if (elementId === 'certExpiryDate') {
-                                createCertExpiryAlertButton(itemName, daysRemaining);
-                            }
-                        } else {
-                            element.classList.remove('expired');
-                            element.classList.add('valid');
-                        }
-                    }
-                }
-                
-                return daysRemaining;
-            } catch (e) {
-                console.error('Error calculating date:', e);
-                return null;
-            }
-        }
-
         // Initialize on load
         window.onload = function() {
             const itemName = '${item['Item Name']}';
             const batchNumber = '${item['Batch/GRIS No.']}';
-            ${item['Item Expiry Date'] !== 'NA' ? `calculateDaysRemaining('${item['Item Expiry Date']}', 'itemExpiryDate', itemName, batchNumber);` : ''}
-            ${item['Certificate Expiry Date'] !== 'NA' && item['Halal Certificate'] === 'Available' ? `calculateDaysRemaining('${item['Certificate Expiry Date']}', 'certExpiryDate', itemName, batchNumber);` : ''}
+            
+            ${item['Item Expiry Date'] !== 'NA' ? `
+                const itemExpiryDate = new Date('${item['Item Expiry Date'].split('/').reverse().join('-')}');
+                const today = new Date();
+                const itemTimeDiff = itemExpiryDate.getTime() - today.getTime();
+                const itemDaysRemaining = Math.ceil(itemTimeDiff / (1000 * 3600 * 24));
+                
+                const itemExpiryElement = document.getElementById('itemExpiryDate');
+                if (itemExpiryElement) {
+                    itemExpiryElement.textContent = \`${formatDate(parseDate(item['Item Expiry Date']))} \${itemDaysRemaining < 1 ? '(Expired)' : \`(Expires in \${itemDaysRemaining} days)\`}\`;
+                    itemExpiryElement.className = \`detail-value \${itemDaysRemaining < 15 ? 'expired' : 'valid'}\`;
+                }
+            ` : ''}
+            
+            ${item['Certificate Expiry Date'] !== 'NA' && item['Halal Certificate'] === 'Available' ? `
+                const certExpiryDate = new Date('${item['Certificate Expiry Date'].split('/').reverse().join('-')}');
+                const certTimeDiff = certExpiryDate.getTime() - today.getTime();
+                const certDaysRemaining = Math.ceil(certTimeDiff / (1000 * 3600 * 24));
+                
+                const certExpiryElement = document.getElementById('certExpiryDate');
+                if (certExpiryElement) {
+                    certExpiryElement.textContent = \`${formatDate(parseDate(item['Certificate Expiry Date']))} \${certDaysRemaining < 1 ? '(Expired)' : \`(Expires in \${certDaysRemaining} days)\`}\`;
+                    certExpiryElement.className = \`detail-value \${certDaysRemaining < 15 ? 'expired' : 'valid'}\`;
+                }
+            ` : ''}
         };
     </script>
 </body>
 </html>`;
 }
 
-// 3. FILE GENERATION =============================================
-
+// File Generation
 async function generateFiles() {
     if (!fs.existsSync(CSV_FILE)) {
         console.error(`Error: Missing CSV file '${CSV_FILE}'`);
@@ -377,6 +304,11 @@ async function generateFiles() {
 
                 // Generate HTML files
                 items.forEach(item => {
+                    // Fix Halal Certificate URL field name inconsistency
+                    if (!item['Halal Certificate URL'] && item['Halal Certificate']) {
+                        item['Halal Certificate URL'] = item['Halal Certificate'];
+                    }
+
                     const filePath = path.join(OUTPUT_DIR, `item_${item['Item ID']}.html`);
                     fs.writeFileSync(filePath, generateHTML(item));
                     console.log(`Generated: ${filePath}`);
@@ -395,7 +327,7 @@ async function generateFiles() {
                 // Copy index.html if needed
                 const indexSource = 'index.html';
                 const indexDest = path.join(OUTPUT_DIR, 'index.html');
-                if (fs.existsSync(indexSource) && !fs.existsSync(indexDest)) {
+                if (fs.existsSync(indexSource) {
                     fs.copyFileSync(indexSource, indexDest);
                     console.log(`Copied ${indexSource} to ${indexDest}`);
                 }
@@ -407,8 +339,7 @@ async function generateFiles() {
     });
 }
 
-// 4. WATCH MODE ==================================================
-
+// Watch Mode
 function setupWatcher() {
     console.log(`\nWatching for changes to ${CSV_FILE}...`);
     chokidar.watch(CSV_FILE)
@@ -421,8 +352,7 @@ function setupWatcher() {
         .on('error', err => console.error('Watcher error:', err));
 }
 
-// 5. MAIN EXECUTION ==============================================
-
+// Main Execution
 (async () => {
     try {
         await generateFiles();
