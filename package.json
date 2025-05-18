@@ -1,13 +1,26 @@
 {
-  "name": "halal-info-generator",
+  "name": "halal-inventory-checker",
   "version": "1.0.0",
-  "description": "Generates HTML pages from CSV data",
+  "description": "Instant Halal & Inventory Checker System",
   "main": "generate.js",
   "scripts": {
+    "start": "node generate.js --watch",
+    "build": "node generate.js",
     "generate": "node generate.js",
-    "build": "npm run generate"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "halal",
+    "inventory",
+    "tracker"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
   "dependencies": {
+    "chokidar": "^3.5.3",
     "csv-parser": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=14.x"
   }
 }

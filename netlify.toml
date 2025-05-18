@@ -1,3 +1,12 @@
 [build]
   command = "npm run build"
   publish = "generated"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  publish = "generated"
+  autoLaunch = false

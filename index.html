@@ -74,6 +74,12 @@
             font-size: 14px;
             height: 20px;
         }
+        .info-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -84,13 +90,27 @@
         <input type="password" class="passkey-input" placeholder="Enter Passkey" id="passkeyInput">
         <div class="error-message" id="errorMessage"></div>
         <button class="login-btn" onclick="attemptLogin()">Login</button>
+        <div class="info-text">Use Item ID from your inventory as passkey</div>
     </div>
 
     <script>
-        // List of valid item IDs/passkeys from the CSV
-        const validPasskeys = ['1', '2', '3', '4', '24', '44'];
+        // This will be populated from the generated HTML files
+        let validPasskeys = [];
 
-        function attemptLogin() {
+        // Fetch available item IDs from the generated files
+        async function fetchValidPasskeys() {
+            try {
+                const response = await fetch('generated/manifest.json');
+                const data = await response.json();
+                validPasskeys = data.availableItems;
+            } catch (error) {
+                console.error('Error fetching valid passkeys:', error);
+                // Fallback to default if manifest fails
+                validPasskeys = ['1', '2', '3', '4', '24', '44'];
+            }
+        }
+
+        async function attemptLogin() {
             const passkey = document.getElementById('passkeyInput').value.trim();
             const errorElement = document.getElementById('errorMessage');
             
@@ -105,17 +125,22 @@
             // Check if the passkey is valid
             if (validPasskeys.includes(passkey)) {
                 // Redirect to the corresponding item page
-                window.location.href = `item_${passkey}.html`;
+                window.location.href = `generated/item_${passkey}.html`;
             } else {
                 errorElement.textContent = 'Invalid passkey. Please try again.';
             }
         }
 
-        // Allow login on Enter key press
-        document.getElementById('passkeyInput').addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                attemptLogin();
-            }
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchValidPasskeys();
+            
+            // Allow login on Enter key press
+            document.getElementById('passkeyInput').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    attemptLogin();
+                }
+            });
         });
     </script>
 </body>
