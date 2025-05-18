@@ -64,9 +64,9 @@ function generateHTML(item) {
     const itemExpiryStatus = getExpiryStatus(itemExpiryDate);
     const certExpiryStatus = getExpiryStatus(certExpiryDate);
 
-    // Determine Halal Certificate URL - handles both field names
+    // Determine Halal Certificate URL
     const halalCertUrl = item['Halal Certificate URL'] || 
-                        (item['Halal Certificate'] && item['Halal Certificate'].startsWith('http') ? item['Halal Certificate'] : '');
+                        (item['Halal Certificate'] && item['Halal Certificate'].startsWith('http') ? item['Halal Certificate'] : null);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -183,11 +183,11 @@ function generateHTML(item) {
             <div class="card-title">Halal Info</div>
             <div class="detail-row">
                 <div class="detail-label">Halal Certificate:</div>
-                <div class="detail-value ${item['Halal Certificate'] === 'Available' ? 'cert-available' : 'cert-not-available'}">
-                    ${item['Halal Certificate']}
+                <div class="detail-value ${halalCertUrl ? 'cert-available' : 'cert-not-available'}">
+                    ${halalCertUrl ? 'Available' : 'Not Available'}
                 </div>
             </div>
-            ${item['Halal Certificate'] === 'Available' ? `
+            ${halalCertUrl ? `
             <div class="detail-row">
                 <div class="detail-label">Certificate Expiry:</div>
                 <div class="detail-value ${certExpiryStatus.class}" id="certExpiryDate">
@@ -270,7 +270,7 @@ function generateHTML(item) {
                 }
             ` : ''}
             
-            ${item['Certificate Expiry Date'] !== 'NA' && item['Halal Certificate'] === 'Available' ? `
+            ${item['Certificate Expiry Date'] !== 'NA' && halalCertUrl ? `
                 const certExpiryDate = new Date('${item['Certificate Expiry Date'].split('/').reverse().join('-')}');
                 const certTimeDiff = certExpiryDate.getTime() - today.getTime();
                 const certDaysRemaining = Math.ceil(certTimeDiff / (1000 * 3600 * 24));
