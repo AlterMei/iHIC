@@ -14,7 +14,7 @@
   to = "/index.html"
   status = 200
 
-# Cache control headers
+# Cache control and security headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -22,11 +22,31 @@
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
 
+# Development settings
 [dev]
   autoLaunch = false
   framework = "#static"
   targetPort = 3000
+  publish = "generated"
 
-[context.production.environment]
-  NODE_ENV = "production"
+# Context-specific settings
+[context.production]
+  command = "npm run build"
+  environment = { 
+    NODE_ENV = "production",
+    GENERATE_SOURCEMAP = "false"
+  }
+
+[context.deploy-preview]
+  command = "npm run build"
+  environment = { 
+    NODE_ENV = "development" 
+  }
+
+[context.branch-deploy]
+  command = "npm run build"
+  environment = { 
+    NODE_ENV = "development" 
+  }
