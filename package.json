@@ -7,7 +7,7 @@
     "clean": "rm -rf generated",
     "prebuild": "npm run clean && mkdir -p generated",
     "build": "node generate.js",
-    "postbuild": "echo '✓ Build completed' && ls generated/",
+    "postbuild": "cp index.html generated/ && cp -r assets/ generated/ || true",
     "start": "node generate.js --watch",
     "test": "echo \"Error: no test specified\" && exit 0",
     "predeploy": "npm run build",
@@ -49,12 +49,14 @@
     "halal",
     "inventory",
     "management",
-    "tracker"
+    "tracker",
+    "checker"
   ],
   "author": "Your Name <your.email@example.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/yourusername/halal-inventory-checker/issues"
   },
-  "homepage": "https://your-netlify-app.netlify.app"
+  "homepage": "https://your-netlify-app.netlify.app",
+  "private": true
 }

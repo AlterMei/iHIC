@@ -1,38 +1,17 @@
 [build]
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "generated"
   functions = "functions"
 
 [build.environment]
   NODE_VERSION = "16.20.2"
   NPM_VERSION = "8.19.4"
-  CI = false
 
-# Redirect rules for SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Cache control headers
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-
 [dev]
   autoLaunch = false
-  framework = "static"
   targetPort = 3000
-
-[context.production]
-  environment = { NODE_ENV = "production" }
-
-[context.deploy-preview]
-  environment = { NODE_ENV = "development" }
-
-[context.branch-deploy]
-  environment = { NODE_ENV = "development" }
