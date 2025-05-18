@@ -1,21 +1,27 @@
 {
-  "name": "halal-inventory-system",
+  "name": "halal-inventory-checker",
   "version": "1.0.0",
-  "description": "Instant Halal Inventory Checker",
+  "description": "Instant Halal & Inventory Checker (i-HIC) System",
   "main": "generate.js",
   "scripts": {
-    "build": "node generate.js && cp index.html generated/ && cp -r assets/ generated/ || true",
+    "build": "node generate.js",
     "start": "node generate.js --watch",
     "test": "echo \"Error: no test specified\" && exit 1",
     "predeploy": "npm run build",
-    "deploy": "netlify deploy --prod"
+    "deploy": "netlify deploy --prod",
+    "format": "prettier --write \"**/*.{js,html,json}\"",
+    "lint": "eslint ."
   },
   "dependencies": {
     "csv-parser": "^3.0.0",
     "chokidar": "^3.5.3"
   },
   "devDependencies": {
-    "netlify-cli": "^12.0.0"
+    "netlify-cli": "^12.0.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3"
   },
   "engines": {
     "node": ">=16.20.2 <17",
@@ -32,5 +38,21 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/halal-inventory-checker.git"
+  },
+  "keywords": [
+    "halal",
+    "inventory",
+    "checker",
+    "management"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/halal-inventory-checker/issues"
+  },
+  "homepage": "https://your-netlify-site.netlify.app"
 }
