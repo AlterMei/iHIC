@@ -24,4 +24,4 @@
   targetPort = 3000
 
 [context.production.environment]
-  NODE_VERSION = "16.x"
+  NODE_VERSION = "16.20.2"  # Explicit version instead of '16.x'

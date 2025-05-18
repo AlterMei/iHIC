@@ -18,8 +18,8 @@
     "netlify-cli": "^12.0.0"
   },
   "engines": {
-    "node": "16.x",
-    "npm": "8.x"
+    "node": ">=16.20.2 <17",
+    "npm": ">=8.19.4 <9"
   },
   "browserslist": {
     "production": [
