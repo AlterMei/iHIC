@@ -4,14 +4,33 @@
   "description": "Instant Halal Inventory Checker",
   "main": "generate.js",
   "scripts": {
-    "build": "node generate.js && cp index.html generated/",
-    "start": "node generate.js --watch"
+    "build": "node generate.js && cp index.html generated/ && cp -r assets/ generated/ || true",
+    "start": "node generate.js --watch",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "predeploy": "npm run build",
+    "deploy": "netlify deploy --prod"
   },
   "dependencies": {
     "csv-parser": "^3.0.0",
     "chokidar": "^3.5.3"
   },
+  "devDependencies": {
+    "netlify-cli": "^12.0.0"
+  },
   "engines": {
-    "node": "16.x"
+    "node": "16.x",
+    "npm": "8.x"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
