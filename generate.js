@@ -1,180 +1,108 @@
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
+const chokidar = require('chokidar');
 
-// Function to generate HTML content for an item
+// Configuration
+const CSV_FILE = 'Halal_Info_2.csv';
+const OUTPUT_DIR = 'generated';
+const EMAIL = 'mygml021@gmail.com';
+
+// 1. HELPER FUNCTIONS ==============================================
+
+function parseDate(dateString) {
+    if (!dateString || dateString === 'NA') return null;
+    if (dateString.includes('/')) {
+        const [day, month, year] = dateString.split('/');
+        return new Date(year, month - 1, day);
+    }
+    return new Date(dateString);
+}
+
+function formatDate(date) {
+    if (!date) return 'N/A';
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function getExpiryStatus(expiryDate) {
+    if (!expiryDate) return { class: 'na-value', text: '', alert: false };
+
+    const today = new Date();
+    const timeDiff = expiryDate.getTime() - today.getTime();
+    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysRemaining < 1) {
+        return {
+            class: 'expired',
+            text: '(Expired)',
+            alert: true,
+            alertText: 'Item Expired. Contact PIC',
+            isExpired: true
+        };
+    } else if (daysRemaining < 15) {
+        return {
+            class: 'expired',
+            text: `(Expires in ${daysRemaining} days)`,
+            alert: true,
+            alertText: 'Nearly Expired. Contact PIC',
+            isExpired: false
+        };
+    }
+    return {
+        class: 'valid',
+        text: `(Expires in ${daysRemaining} days)`,
+        alert: false
+    };
+}
+
+// 2. HTML TEMPLATE ================================================
+
 function generateHTML(item) {
-  const today = new Date();
-  const itemExpiryDate = item['Item Expiry Date'] === 'NA' ? null : parseDate(item['Item Expiry Date']);
-  const certExpiryDate = item['Certificate Expiry Date'] === 'NA' ? null : parseDate(item['Certificate Expiry Date']);
+    const itemExpiryDate = parseDate(item['Item Expiry Date']);
+    const certExpiryDate = parseDate(item['Certificate Expiry Date']);
+    const itemExpiryStatus = getExpiryStatus(itemExpiryDate);
+    const certExpiryStatus = getExpiryStatus(certExpiryDate);
 
-  const itemExpiryStatus = getExpiryStatus(itemExpiryDate);
-  const certExpiryStatus = getExpiryStatus(certExpiryDate);
-
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>i-HIC - ${item['Item Name']} Details</title>
     <style>
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-        }
-        body { 
-            padding: 15px; 
-            background-color: #f5f5f5; 
-            font-family: Arial, sans-serif; 
-        }
-        .container { 
-            max-width: 100%; 
-            margin: 0 auto; 
-            background: white; 
-            border-radius: 10px; 
-            padding: 20px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-        }
-        .header-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .header-main { 
-            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
-            color: #0066cc; 
-            font-size: 24px; 
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-        .header-sub { 
-            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif; 
-            color: #0066cc; 
-            font-size: 20px; 
-            font-weight: 800;
-            letter-spacing: 1px;
-        }
-        .item-name { 
-            font-size: 22px; 
-            font-weight: bold; 
-            text-align: center; 
-            margin-bottom: 25px; 
-            color: #333;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #0066cc;
-        }
-        .info-card {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
-            margin-bottom: 20px;
-        }
-        .card-title {
-            font-weight: bold;
-            color: #0066cc;
-            margin-bottom: 15px;
-            font-size: 18px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .detail-row { 
-            display: flex; 
-            margin-bottom: 10px; 
-            align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .detail-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-            margin-bottom: 0;
-        }
-        .detail-label { 
-            font-weight: bold; 
-            width: 50%; 
-            color: #555; 
-            font-size: 16px;
-            padding-right: 5px;
-        }
-        .detail-value { 
-            width: 50%; 
-            word-break: break-word;
-            font-size: 16px;
-            text-align: left;
-            padding-left: 5px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { padding: 15px; background-color: #f5f5f5; font-family: Arial, sans-serif; }
+        .container { max-width: 100%; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header-container { text-align: center; margin-bottom: 20px; }
+        .header-main { font-family: "Century Gothic", sans-serif; color: #0066cc; font-size: 24px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .header-sub { font-family: "Century Gothic", sans-serif; color: #0066cc; font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+        .item-name { font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 25px; color: #333; padding-bottom: 10px; border-bottom: 2px solid #0066cc; }
+        .info-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0; margin-bottom: 20px; }
+        .card-title { font-weight: bold; color: #0066cc; margin-bottom: 15px; font-size: 18px; padding-bottom: 5px; border-bottom: 1px solid #e0e0e0; }
+        .detail-row { display: flex; margin-bottom: 10px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+        .detail-row:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+        .detail-label { font-weight: bold; width: 50%; color: #555; font-size: 16px; padding-right: 5px; }
+        .detail-value { width: 50%; word-break: break-word; font-size: 16px; text-align: left; padding-left: 5px; }
         .cert-available { color: #27ae60; font-weight: bold; }
         .cert-not-available { color: #e74c3c; font-weight: bold; }
         .expired { color: #e74c3c; font-weight: bold; }
         .valid { color: #27ae60; font-weight: bold; }
-        .btn { 
-            display: inline-block; 
-            padding: 10px 12px; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 5px; 
-            text-align: center; 
-            font-size: 15px; 
-            border: none; 
-            cursor: pointer; 
-            width: 100%;
-            margin-top: 8px;
-        }
+        .btn { display: inline-block; padding: 10px 12px; color: white; text-decoration: none; border-radius: 5px; text-align: center; font-size: 15px; border: none; cursor: pointer; width: 100%; margin-top: 8px; }
         .btn:hover { opacity: 0.9; }
         .btn-blue { background-color: #3498db; }
         .btn-green { background-color: #2ecc71; }
         .btn-purple { background-color: #9b59b6; }
-        .btn-red { 
-            background-color: #e74c3c; 
-            margin: 15px 0 20px 0;
-        }
-        .stock-request-box { 
-            background-color: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-top: 20px; 
-            border: 1px solid #e0e0e0;
-            text-align: left;
-        }
-        .quantity-input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border: 1px solid #ddd; 
-            border-radius: 5px; 
-            font-size: 16px; 
-            text-align: left;
-        }
-        .quantity-label { 
-            display: block; 
-            margin: 10px 0 5px; 
-            font-weight: bold; 
-            color: #333; 
-            font-size: 16px;
-            text-align: left;
-        }
-        .back-btn { 
-            display: block; 
-            text-align: center; 
-            margin-top: 20px; 
-            color: #3498db; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 16px;
-        }
-        .expiry-alert-container {
-            margin: 10px 0 5px 0;
-        }
-        .cert-alert-container {
-            margin: 10px 0 5px 0;
-        }
-        .na-value {
-            color: #7f8c8d;
-            font-style: italic;
-        }
+        .btn-red { background-color: #e74c3c; margin: 15px 0 20px 0; }
+        .stock-request-box { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #e0e0e0; text-align: left; }
+        .quantity-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; text-align: left; }
+        .quantity-label { display: block; margin: 10px 0 5px; font-weight: bold; color: #333; font-size: 16px; text-align: left; }
+        .back-btn { display: block; text-align: center; margin-top: 20px; color: #3498db; text-decoration: none; font-weight: bold; font-size: 16px; }
+        .expiry-alert-container { margin: 10px 0 5px 0; }
+        .cert-alert-container { margin: 10px 0 5px 0; }
+        .na-value { color: #7f8c8d; font-style: italic; }
         @media (min-width: 600px) { 
             .container { max-width: 600px; } 
             .header-main { font-size: 26px; }
@@ -291,6 +219,7 @@ function generateHTML(item) {
     </div>
 
     <script>
+        // Email Functions
         function sendRequest(itemName) {
             const quantityInput = document.querySelector('.quantity-input');
             const quantity = quantityInput.value;
@@ -303,7 +232,7 @@ function generateHTML(item) {
             const subject = \`Stock Request - \${itemName}\`;
             const body = \`Hi. I want to request for \${itemName} with a quantity of \${quantity}. Thank you.\`;
             
-            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
+            window.location.href = \`mailto:${EMAIL}?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
             quantityInput.value = '';
         }
 
@@ -311,16 +240,17 @@ function generateHTML(item) {
             const subject = \`High Important : \${itemName} is \${isExpired ? 'Expired' : 'Nearly Expired'}\`;
             const body = \`Hi. The \${itemName} with Identification Number of \${batchNumber} is \${isExpired ? 'already expired' : 'nearly expired'}. Please do the necessary. Thank you.\`;
             
-            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
+            window.location.href = \`mailto:${EMAIL}?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
         }
 
         function sendCertExpiryAlert(itemName, isExpired) {
             const subject = \`High Important : \${itemName} Halal Certificate is \${isExpired ? 'Expired' : 'Nearly Expired'}\`;
             const body = \`Hi. The \${itemName} Halal certificate is \${isExpired ? 'already expired' : 'nearly expired'}. Please do the necessary. Thank you.\`;
             
-            window.location.href = \`mailto:mygml021@gmail.com?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
+            window.location.href = \`mailto:${EMAIL}?subject=\${encodeURIComponent(subject)}&body=\${encodeURIComponent(body)}\`;
         }
 
+        // Alert Button Creators
         function createItemExpiryAlertButton(itemName, batchNumber, daysRemaining) {
             const container = document.getElementById('expiryAlertContainer');
             if (!container) return;
@@ -363,14 +293,7 @@ function generateHTML(item) {
             }
         }
 
-        function parseDate(dateString) {
-            if (dateString.includes('/')) {
-                const parts = dateString.split('/');
-                return new Date(parts[2], parts[1] - 1, parts[0]);
-            }
-            return new Date(dateString);
-        }
-
+        // Date Calculations
         function calculateDaysRemaining(expiryDate, elementId, itemName, batchNumber) {
             if (!expiryDate || expiryDate === 'NA') return;
             
@@ -420,13 +343,7 @@ function generateHTML(item) {
             }
         }
 
-        function formatDate(date) {
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return \`\${day}/\${month}/\${year}\`;
-        }
-
+        // Initialize on load
         window.onload = function() {
             const itemName = '${item['Item Name']}';
             const batchNumber = '${item['Batch/GRIS No.']}';
@@ -438,84 +355,86 @@ function generateHTML(item) {
 </html>`;
 }
 
-// Helper functions
-function parseDate(dateString) {
-    if (!dateString || dateString === 'NA') return null;
-    const parts = dateString.split('/');
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-}
+// 3. FILE GENERATION =============================================
 
-function formatDate(date) {
-    if (!date) return 'N/A';
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
-function getExpiryStatus(expiryDate) {
-    if (!expiryDate) {
-        return {
-            class: 'na-value',
-            text: '',
-            alert: false
-        };
+async function generateFiles() {
+    if (!fs.existsSync(CSV_FILE)) {
+        console.error(`Error: Missing CSV file '${CSV_FILE}'`);
+        process.exit(1);
     }
 
-    const today = new Date();
-    const timeDiff = expiryDate.getTime() - today.getTime();
-    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-    if (daysRemaining < 1) {
-        return {
-            class: 'expired',
-            text: '(Expired)',
-            alert: true,
-            alertText: 'Item Expired. Contact PIC',
-            isExpired: true
-        };
-    } else if (daysRemaining < 15) {
-        return {
-            class: 'expired',
-            text: `(Expires in ${daysRemaining} days)`,
-            alert: true,
-            alertText: 'Nearly Expired. Contact PIC',
-            isExpired: false
-        };
-    } else {
-        return {
-            class: 'valid',
-            text: `(Expires in ${daysRemaining} days)`,
-            alert: false
-        };
-    }
-}
-
-// Main function to process CSV and generate HTML files
-function generateFromCSV() {
     const items = [];
     
-    fs.createReadStream('Halal_Info_2.csv')
-        .pipe(csv())
-        .on('data', (data) => items.push(data))
-        .on('end', () => {
-            // Create output directory if it doesn't exist
-            const outputDir = path.join(__dirname, 'generated');
-            if (!fs.existsSync(outputDir)) {
-                fs.mkdirSync(outputDir);
-            }
+    return new Promise((resolve, reject) => {
+        fs.createReadStream(CSV_FILE)
+            .pipe(csv())
+            .on('data', (data) => items.push(data))
+            .on('end', () => {
+                // Create output directory
+                if (!fs.existsSync(OUTPUT_DIR)) {
+                    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+                }
 
-            // Generate HTML for each item
-            items.forEach(item => {
-                const htmlContent = generateHTML(item);
-                const fileName = `item_${item['Item ID']}.html`;
-                fs.writeFileSync(path.join(outputDir, fileName), htmlContent);
-                console.log(`Generated: ${fileName}`);
-            });
+                // Generate HTML files
+                items.forEach(item => {
+                    const filePath = path.join(OUTPUT_DIR, `item_${item['Item ID']}.html`);
+                    fs.writeFileSync(filePath, generateHTML(item));
+                    console.log(`Generated: ${filePath}`);
+                });
 
-            console.log('HTML generation complete!');
-        });
+                // Generate manifest
+                const manifest = {
+                    generatedAt: new Date().toISOString(),
+                    availableItems: items.map(item => item['Item ID'].toString())
+                };
+                fs.writeFileSync(
+                    path.join(OUTPUT_DIR, 'manifest.json'),
+                    JSON.stringify(manifest, null, 2)
+                );
+
+                // Copy index.html if needed
+                const indexSource = 'index.html';
+                const indexDest = path.join(OUTPUT_DIR, 'index.html');
+                if (fs.existsSync(indexSource) && !fs.existsSync(indexDest)) {
+                    fs.copyFileSync(indexSource, indexDest);
+                    console.log(`Copied ${indexSource} to ${indexDest}`);
+                }
+
+                console.log(`Successfully generated ${items.length} item pages`);
+                resolve();
+            })
+            .on('error', reject);
+    });
 }
 
-// Run the generator
-generateFromCSV();
+// 4. WATCH MODE ==================================================
+
+function setupWatcher() {
+    console.log(`\nWatching for changes to ${CSV_FILE}...`);
+    chokidar.watch(CSV_FILE)
+        .on('change', () => {
+            console.log('\nCSV file modified. Regenerating files...');
+            generateFiles().catch(err => {
+                console.error('Regeneration failed:', err);
+            });
+        })
+        .on('error', err => console.error('Watcher error:', err));
+}
+
+// 5. MAIN EXECUTION ==============================================
+
+(async () => {
+    try {
+        await generateFiles();
+        
+        // Enable watch mode if --watch flag is present
+        if (process.argv.includes('--watch')) {
+            setupWatcher();
+        } else {
+            process.exit(0); // Exit normally after one-time generation
+        }
+    } catch (error) {
+        console.error('Generation failed:', error);
+        process.exit(1);
+    }
+})();

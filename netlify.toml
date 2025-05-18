@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = "generated"
+  functions = "functions"
 
 [[redirects]]
   from = "/*"
@@ -8,5 +9,4 @@
   status = 200
 
 [dev]
-  publish = "generated"
   autoLaunch = false
