@@ -3,10 +3,10 @@
   publish = "generated"
   functions = "functions"
 
-# Environment variables
 [build.environment]
   NODE_VERSION = "16.20.2"
   NPM_VERSION = "8.19.4"
+  CI = false
 
 # Redirect rules for SPA
 [[redirects]]
@@ -22,24 +22,11 @@
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Dev settings
 [dev]
   autoLaunch = false
   framework = "#static"
   targetPort = 3000
-  publish = "generated"
 
-# Context-specific settings
-[context.production]
-  command = "npm run build"
-  environment = { NODE_ENV = "production" }
-
-[context.deploy-preview]
-  command = "npm run build"
-  environment = { NODE_ENV = "development" }
-
-[context.branch-deploy]
-  command = "npm run build"
-  environment = { NODE_ENV = "development" }
+[context.production.environment]
+  NODE_ENV = "production"
